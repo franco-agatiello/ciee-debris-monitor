@@ -1,3 +1,4 @@
+import { publicUrl } from '../../../utils/publicUrl'
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { MapContainer, TileLayer, CircleMarker, Polyline, Popup } from 'react-leaflet'
@@ -378,7 +379,7 @@ function Orbit3DModal({ open, point, onClose }) {
             <Globe
               key={`${point?.norad || 'x'}-${open ? 'open' : 'closed'}`}
               backgroundColor="#02040a"
-              globeImageUrl="/img/earthmap1k.jpg"
+                globeImageUrl={publicUrl('/img/earthmap1k.jpg')}
               showAtmosphere
               atmosphereColor="#3d7cff"
               atmosphereAltitude={0.12}

@@ -6,6 +6,7 @@ import Globe from 'react-globe.gl'
 import * as satellite from 'satellite.js'
 import * as THREE from 'three'
 import { loadCsv, toNumber, toStringSafe } from '../../../utils/csv.js'
+import { publicUrl } from '../../../utils/publicUrl'
 import HeatLayer from './HeatLayer.jsx'
 
 const CLASS_COLORS = {
@@ -221,7 +222,7 @@ function Orbit3DModal({ open, point, onClose }) {
           <Globe
             key={`${point?.norad || 'x'}-${open ? 'open' : 'closed'}`}
             backgroundColor="#02040a"
-            globeImageUrl="/img/earthmap1k.jpg"
+              globeImageUrl={publicUrl('/img/earthmap1k.jpg')}
             showAtmosphere
             atmosphereColor="#3d7cff"
             atmosphereAltitude={0.12}

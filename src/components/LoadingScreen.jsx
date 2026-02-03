@@ -1,11 +1,12 @@
 import { motion } from 'framer-motion'
+import { publicUrl } from '../utils/publicUrl'
 
 export default function LoadingScreen({ label = 'Loading…' }) {
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[#02040a] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/20 via-[#02040a] to-[#02040a]">
       <div className="flex flex-col items-center gap-4">
         <motion.img
-          src="/img/logo-ciee.png"
+          src={publicUrl('/img/logo-ciee.png')}
           alt="CIEE"
           className="h-16 w-auto"
           animate={{ opacity: [0.55, 1, 0.55], filter: ['blur(0px)', 'blur(0px)', 'blur(0px)'] }}

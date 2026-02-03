@@ -1,4 +1,5 @@
 import Papa from 'papaparse'
+import { publicUrl } from './publicUrl'
 
 const cache = new Map()
 
@@ -36,6 +37,7 @@ function parseCsv(
   } = {}
 ) {
   return new Promise((resolve, reject) => {
+    const resolvedUrl = publicUrl(url)
     let settled = false
     let timeoutId = null
 
@@ -50,7 +52,7 @@ function parseCsv(
     const onResolve = finish(resolve)
     const onReject = finish((err) => reject(err instanceof Error ? err : new Error(String(err))))
 
-    const parser = Papa.parse(url, {
+    const parser = Papa.parse(resolvedUrl, {
       download: true,
       worker: Boolean(worker),
       header: true,
@@ -71,7 +73,7 @@ function parseCsv(
           if (missing.length) {
             onReject(
               new Error(
-                `CSV header mismatch for ${url}. Missing columns: ${missing.join(
+                `CSV header mismatch for ${resolvedUrl}. Missing columns: ${missing.join(
                   ', ',
                 )}. This usually indicates a delimiter/encoding issue.`
               )
@@ -92,29 +94,32 @@ function parseCsv(
         } catch {
           // ignore
         }
-        onReject(new Error(`CSV parse timed out after ${timeoutMs}ms for ${url}`))
+        onReject(new Error(`CSV parse timed out after ${timeoutMs}ms for ${resolvedUrl}`))
       }, timeoutMs)
     }
   })
 }
 
 export async function loadCsv(url, { cacheKey = url, requiredColumns = null } = {}) {
-  if (cache.has(cacheKey)) return cache.get(cacheKey)
+  const resolvedUrl = publicUrl(url)
+  const resolvedCacheKey = cacheKey === url ? resolvedUrl : cacheKey
+
+  if (cache.has(resolvedCacheKey)) return cache.get(resolvedCacheKey)
 
   const p = (async () => {
     try {
-      return await parseCsv(url, { worker: true, requiredColumns, timeoutMs: 15000 })
+      return await parseCsv(resolvedUrl, { worker: true, requiredColumns, timeoutMs: 15000 })
     } catch (err) {
       console.warn('CSV worker parse failed; retrying without worker:', err)
-      return await parseCsv(url, { worker: false, requiredColumns, timeoutMs: 30000 })
+      return await parseCsv(resolvedUrl, { worker: false, requiredColumns, timeoutMs: 30000 })
     }
   })()
 
   // If it fails, don't poison the cache.
   p.catch(() => {
-    cache.delete(cacheKey)
+    cache.delete(resolvedCacheKey)
   })
 
-  cache.set(cacheKey, p)
+  cache.set(resolvedCacheKey, p)
   return p
 }

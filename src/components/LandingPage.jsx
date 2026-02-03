@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { publicUrl } from '../utils/publicUrl'
 
 function glowStyle(rgba) {
   return {
@@ -61,7 +62,7 @@ export default function LandingPage() {
       <div className="min-h-screen w-full flex items-center justify-center px-6 py-10">
         <div className="w-full max-w-5xl">
           <div className="flex flex-col items-center text-center">
-            <img src="/img/logo-ciee.png" alt="CIEE" className="h-32 w-auto" />
+            <img src={publicUrl('/img/logo-ciee.png')} alt="CIEE" className="h-32 w-auto" />
             <div className="mt-6 text-3xl md:text-4xl font-extrabold tracking-tight text-white">
               Space Situational Awareness Suite
             </div>

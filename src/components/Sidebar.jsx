@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { publicUrl } from '../utils/publicUrl'
 
 const links = [
   { to: '/', label: 'Mission Hub', hint: 'Landing' },
@@ -13,7 +14,7 @@ export default function Sidebar() {
     <aside className="glass h-full p-5 flex flex-col gap-5">
       <div>
         <div className="flex items-center gap-3">
-          <img src="/img/logo-ciee.png" alt="CIEE" className="h-10 w-auto" />
+          <img src={publicUrl('/img/logo-ciee.png')} alt="CIEE" className="h-10 w-auto" />
           <div>
             <div className="text-lg font-extrabold tracking-tight">CIEE Space Watch Suite</div>
             <div className="text-xs text-white/60 mono">2026-02-03 · local</div>

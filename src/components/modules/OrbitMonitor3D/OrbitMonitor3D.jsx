@@ -4,6 +4,7 @@ import * as satellite from 'satellite.js'
 import * as THREE from 'three'
 import { loadCsv, toStringSafe } from '../../../utils/csv.js'
 import { useDeferredRender } from '../../../hooks/useDeferredRender.js'
+import { publicUrl } from '../../../utils/publicUrl'
 
 function clamp(n, a, b) {
   return Math.max(a, Math.min(b, n))
@@ -116,7 +117,7 @@ function OrbitMonitor3D() {
   const [bufferErr, setBufferErr] = useState('')
   const [showAll, setShowAll] = useState(true)
 
-  const [globeImgUrl, setGlobeImgUrl] = useState('/img/earthmap_ref.jpg')
+  const [globeImgUrl, setGlobeImgUrl] = useState(publicUrl('/img/earthmap_ref.jpg'))
 
   const [isFullscreen, setIsFullscreen] = useState(false)
 
@@ -178,8 +179,8 @@ function OrbitMonitor3D() {
 
   useEffect(() => {
     // Prefer a user-provided higher-res texture, but fall back gracefully.
-    const preferred = '/img/earthmap_ref.jpg'
-    const fallback = '/img/earthmap1k.jpg'
+    const preferred = publicUrl('/img/earthmap_ref.jpg')
+    const fallback = publicUrl('/img/earthmap1k.jpg')
 
     let done = false
     const img = new Image()

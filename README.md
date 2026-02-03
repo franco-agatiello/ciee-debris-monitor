@@ -49,4 +49,15 @@ $env:GITHUB_TOKEN = "<PAT con permiso repo>"
 node scripts/publish-github.mjs
 ```
 
+## GitHub Pages
+
+Este repo está configurado para desplegar automáticamente en GitHub Pages a través de GitHub Actions.
+
+- Workflow: `.github/workflows/deploy-pages.yml`
+- URL esperada: `https://franco-agatiello.github.io/ciee-debris-monitor/`
+
+Notas:
+- La construcción establece `base` de Vite automáticamente cuando `GITHUB_PAGES=true`.
+- React Router utiliza `import.meta.env.BASE_URL` como `basename`, por lo que el enrutamiento funciona bajo la subruta de Pages.
+
 > Por defecto `dist/` está ignorado por git (ver `.gitignore`). Si querés publicar en GitHub Pages, lo ideal es usar un workflow que haga build y despliegue.

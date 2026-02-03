@@ -1,5 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import Papa from 'papaparse'
+import { publicUrl } from '../../../utils/publicUrl'
 import {
   Area,
   AreaChart,
@@ -143,50 +144,83 @@ function TinyDot(props) {
 }
 
 async function parseCsvStream(url, onRow, onProgress, signal) {
-  return new Promise((resolve, reject) => {
-    let rows = 0
-    let lastUpdate = 0
+  const resolvedUrl = publicUrl(url)
 
-    const done = (err) => {
-      if (err) reject(err)
-      else resolve({ rows })
-    }
+  const run = (worker, stallTimeoutMs) =>
+    new Promise((resolve, reject) => {
+      let rows = 0
+      let lastUpdate = 0
+      let settled = false
+      let timeoutId = null
 
-    const parser = Papa.parse(url, {
-      download: true,
-      worker: true,
-      header: true,
-      dynamicTyping: false,
-      skipEmptyLines: true,
-      delimiter: '',
-      delimitersToGuess: [':', ',', ';', '\t', '|'],
-      chunkSize: 512 * 1024,
-      chunk: (results) => {
-        if (signal?.aborted) {
-          try {
-            results?.parser?.abort()
-          } catch {
-            // ignore
+      const finish = (err) => {
+        if (settled) return
+        settled = true
+        if (timeoutId) clearTimeout(timeoutId)
+        if (err) reject(err)
+        else resolve({ rows })
+      }
+
+      let parser = null
+      const abort = (reason) => {
+        try {
+          parser?.abort?.()
+        } catch {
+          // ignore
+        }
+        finish(reason || new Error('Aborted'))
+      }
+
+      const bumpTimeout = () => {
+        if (!stallTimeoutMs) return
+        if (timeoutId) clearTimeout(timeoutId)
+        timeoutId = setTimeout(() => {
+          abort(new Error(`CSV stream stalled for ${stallTimeoutMs}ms: ${resolvedUrl}`))
+        }, stallTimeoutMs)
+      }
+
+      if (signal) {
+        if (signal.aborted) return abort(new Error('Aborted'))
+        signal.addEventListener('abort', () => abort(new Error('Aborted')), { once: true })
+      }
+
+      bumpTimeout()
+      parser = Papa.parse(resolvedUrl, {
+        download: true,
+        worker: Boolean(worker),
+        header: true,
+        dynamicTyping: false,
+        skipEmptyLines: true,
+        delimiter: '',
+        delimitersToGuess: [':', ',', ';', '\t', '|'],
+        chunkSize: 512 * 1024,
+        chunk: (results) => {
+          bumpTimeout()
+
+          const data = results?.data || []
+          for (const r of data) {
+            if (!r) continue
+            rows += 1
+            onRow(r)
           }
-          return
-        }
 
-        const data = results?.data || []
-        for (const r of data) {
-          if (!r) continue
-          rows += 1
-          onRow(r)
-        }
-
-        const now = performance.now()
-        if (onProgress && now - lastUpdate > 120) {
-          lastUpdate = now
-          onProgress(rows)
-        }
-      },
-      complete: () => done(null),
-      error: (e) => done(e),
+          const now = performance.now()
+          if (onProgress && now - lastUpdate > 120) {
+            lastUpdate = now
+            onProgress(rows)
+          }
+        },
+        complete: () => finish(null),
+        error: (e) => finish(e),
+      })
     })
+
+  try {
+    return await run(true, 20000)
+  } catch (err) {
+    console.warn('CSV stream worker parse failed; retrying without worker:', err)
+    return await run(false, 45000)
+  }
 
     if (signal) {
       signal.addEventListener(
@@ -412,7 +446,7 @@ function AnalyticsModule() {
         setError('')
 
         updateStage('Loading precomputed…', 0)
-        const res = await fetch(`/data/analytics.precomputed.json?ts=${Date.now()}`)
+        const res = await fetch(`${publicUrl('/data/analytics.precomputed.json')}?ts=${Date.now()}`)
         if (res.ok) {
           const payload = await res.json()
           applyPrecomputed(payload)
