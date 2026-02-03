@@ -8,10 +8,44 @@ import http from 'isomorphic-git/http/node'
 
 const dir = process.cwd()
 
+async function readOptionalFileText(relPath) {
+  const abs = path.join(dir, relPath)
+  try {
+    const t = await fsp.readFile(abs, 'utf8')
+    return t.trim()
+  } catch {
+    return null
+  }
+}
+
 function mustGetEnv(name) {
   const v = process.env[name]
   if (!v) throw new Error(`Missing required env var: ${name}`)
   return v
+}
+
+async function getRepoUrl() {
+  return (
+    process.env.GITHUB_REPO_URL ||
+    (await readOptionalFileText('.github-repo-url'))
+  )
+}
+
+async function getToken() {
+  return (
+    process.env.GITHUB_TOKEN ||
+    (await readOptionalFileText('.github-token'))
+  )
+}
+
+function parseOwnerRepo(repoUrl) {
+  const u = new URL(repoUrl)
+  // Expect: /owner/repo(.git)
+  const parts = u.pathname.replace(/^\//, '').replace(/\.git$/, '').split('/')
+  if (parts.length < 2) throw new Error(`Could not parse owner/repo from ${repoUrl}`)
+  const owner = parts[0]
+  const repo = parts[1]
+  return { owner, repo }
 }
 
 async function pathExists(p) {
@@ -91,6 +125,17 @@ async function stageAll() {
   return files.length
 }
 
+async function hasStagedChanges() {
+  // statusMatrix rows: [filepath, HEAD, workdir, stage]
+  // We only care whether stage differs from HEAD (i.e. something to commit).
+  const matrix = await git.statusMatrix({ fs, dir })
+  return matrix.some((row) => {
+    const head = row[1]
+    const stage = row[3]
+    return stage !== head
+  })
+}
+
 async function commitAll() {
   const name = process.env.GIT_AUTHOR_NAME || 'CIEE'
   const email = process.env.GIT_AUTHOR_EMAIL || 'ciee@example.local'
@@ -106,7 +151,9 @@ async function commitAll() {
 }
 
 async function pushMain() {
-  const token = mustGetEnv('GITHUB_TOKEN')
+  const token = (await getToken())
+  if (!token) throw new Error('Missing GitHub token. Set GITHUB_TOKEN or create .github-token')
+  const username = (process.env.GITHUB_USERNAME || '').trim() || 'x-access-token'
 
   await git.push({
     fs,
@@ -114,15 +161,138 @@ async function pushMain() {
     dir,
     remote: 'origin',
     ref: 'main',
-    onAuth: () => ({ username: 'x-access-token', password: token }),
+    onAuth: () => ({ username, password: token }),
     onAuthFailure: () => {
       throw new Error('GitHub auth failed. Check GITHUB_TOKEN permissions.')
     },
   })
 }
 
+async function githubRequest(token, url, { method = 'GET', headers = {}, body } = {}) {
+  const res = await fetch(url, {
+    method,
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'User-Agent': 'ciee-publish-script',
+      'Accept': 'application/vnd.github+json',
+      ...headers,
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  })
+
+  const text = await res.text()
+  let json = null
+  try {
+    json = text ? JSON.parse(text) : null
+  } catch {
+    // ignore
+  }
+
+  if (!res.ok) {
+    const msg = json?.message || text || `${res.status} ${res.statusText}`
+    const err = new Error(`GitHub API ${res.status}: ${msg}`)
+    err.status = res.status
+    throw err
+  }
+  return json
+}
+
+function isBinaryPath(filepath) {
+  const lower = filepath.toLowerCase()
+  return ['.png', '.jpg', '.jpeg', '.webp', '.ico', '.woff2'].some((ext) => lower.endsWith(ext))
+}
+
+async function pushViaGitHubApi({ repoUrl, message }) {
+  const token = (await getToken())
+  if (!token) throw new Error('Missing GitHub token. Set GITHUB_TOKEN or create .github-token')
+
+  const { owner, repo } = parseOwnerRepo(repoUrl)
+  const apiBase = `https://api.github.com/repos/${owner}/${repo}`
+
+  const ig = await loadIgnore(dir)
+  const files = await walkFiles(dir, ig)
+  if (files.length === 0) {
+    console.log('No files to publish (everything ignored).')
+    return
+  }
+
+  // Determine current main ref (if exists)
+  let parentSha = null
+  let baseTree = null
+  try {
+    const ref = await githubRequest(token, `${apiBase}/git/ref/heads/main`)
+    parentSha = ref?.object?.sha || null
+    if (parentSha) {
+      const commit = await githubRequest(token, `${apiBase}/git/commits/${parentSha}`)
+      baseTree = commit?.tree?.sha || null
+    }
+  } catch (e) {
+    if (e?.status !== 404) throw e
+  }
+
+  const tree = []
+  for (const filepath of files) {
+    const abs = path.join(dir, filepath.split('/').join(path.sep))
+    const buf = await fsp.readFile(abs)
+    const isBinary = isBinaryPath(filepath)
+    const body = isBinary
+      ? { content: buf.toString('base64'), encoding: 'base64' }
+      : { content: buf.toString('utf8'), encoding: 'utf-8' }
+
+    const blob = await githubRequest(token, `${apiBase}/git/blobs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+    })
+
+    tree.push({
+      path: filepath,
+      mode: '100644',
+      type: 'blob',
+      sha: blob.sha,
+    })
+  }
+
+  const createdTree = await githubRequest(token, `${apiBase}/git/trees`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: {
+      base_tree: baseTree || undefined,
+      tree,
+    },
+  })
+
+  const commit = await githubRequest(token, `${apiBase}/git/commits`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: {
+      message,
+      tree: createdTree.sha,
+      parents: parentSha ? [parentSha] : [],
+    },
+  })
+
+  // Update/create main ref
+  if (parentSha) {
+    await githubRequest(token, `${apiBase}/git/refs/heads/main`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: { sha: commit.sha, force: false },
+    })
+  } else {
+    await githubRequest(token, `${apiBase}/git/refs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: { ref: 'refs/heads/main', sha: commit.sha },
+    })
+  }
+
+  console.log(`Published via GitHub API: ${commit.sha}`)
+}
+
 async function main() {
-  const repoUrl = mustGetEnv('GITHUB_REPO_URL')
+  const repoUrl = await getRepoUrl()
+  if (!repoUrl) throw new Error('Missing repo URL. Set GITHUB_REPO_URL or create .github-repo-url')
 
   if (!repoUrl.startsWith('https://')) {
     throw new Error('GITHUB_REPO_URL must be an https URL (e.g. https://github.com/user/repo.git)')
@@ -137,11 +307,29 @@ async function main() {
     return
   }
 
+  if (!(await hasStagedChanges())) {
+    console.log('No changes to commit; attempting push anyway…')
+    await pushMain()
+    console.log('Pushed to origin/main')
+    return
+  }
+
   const sha = await commitAll()
   console.log(`Committed ${count} files at ${sha}`)
 
-  await pushMain()
-  console.log('Pushed to origin/main')
+  try {
+    await pushMain()
+    console.log('Pushed to origin/main')
+  } catch (e) {
+    // Some GitHub tokens/environments block git-receive-pack even when API access exists.
+    // Fall back to GitHub REST API (Git Data) publication.
+    if (String(e?.message || '').includes('403')) {
+      console.warn('Git push failed (403). Falling back to GitHub API publish…')
+      await pushViaGitHubApi({ repoUrl, message: process.env.COMMIT_MESSAGE || 'Initial commit' })
+      return
+    }
+    throw e
+  }
 }
 
 main().catch((err) => {

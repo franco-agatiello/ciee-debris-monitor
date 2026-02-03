@@ -18,6 +18,10 @@ pnpm-debug.log*
 .env
 .env.*
 
+# local github publish secrets (DO NOT COMMIT)
+.github-token
+.github-repo-url
+
 # OS / editor
 .DS_Store
 Thumbs.db
