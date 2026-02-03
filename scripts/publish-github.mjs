@@ -168,6 +168,21 @@ async function pushMain() {
   })
 }
 
+async function pushWithFallback({ repoUrl, message }) {
+  try {
+    await pushMain()
+    console.log('Pushed to origin/main')
+  } catch (e) {
+    const msg = String(e?.message || '')
+    if (msg.includes('403') || msg.includes('not a simple fast-forward') || msg.includes('Push rejected')) {
+      console.warn('Git push failed. Falling back to GitHub API publish…')
+      await pushViaGitHubApi({ repoUrl, message })
+      return
+    }
+    throw e
+  }
+}
+
 async function githubRequest(token, url, { method = 'GET', headers = {}, body } = {}) {
   const res = await fetch(url, {
     method,
@@ -309,28 +324,14 @@ async function main() {
 
   if (!(await hasStagedChanges())) {
     console.log('No changes to commit; attempting push anyway…')
-    await pushMain()
-    console.log('Pushed to origin/main')
+    await pushWithFallback({ repoUrl, message: process.env.COMMIT_MESSAGE || 'Update' })
     return
   }
 
   const sha = await commitAll()
   console.log(`Committed ${count} files at ${sha}`)
 
-  try {
-    await pushMain()
-    console.log('Pushed to origin/main')
-  } catch (e) {
-    // Some GitHub tokens/environments block git-receive-pack even when API access exists.
-    // Fall back to GitHub REST API (Git Data) publication.
-    const msg = String(e?.message || '')
-    if (msg.includes('403') || msg.includes('not a simple fast-forward') || msg.includes('Push rejected')) {
-      console.warn('Git push failed. Falling back to GitHub API publish…')
-      await pushViaGitHubApi({ repoUrl, message: process.env.COMMIT_MESSAGE || 'Initial commit' })
-      return
-    }
-    throw e
-  }
+  await pushWithFallback({ repoUrl, message: process.env.COMMIT_MESSAGE || 'Initial commit' })
 }
 
 main().catch((err) => {
