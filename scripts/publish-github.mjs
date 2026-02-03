@@ -323,8 +323,9 @@ async function main() {
   } catch (e) {
     // Some GitHub tokens/environments block git-receive-pack even when API access exists.
     // Fall back to GitHub REST API (Git Data) publication.
-    if (String(e?.message || '').includes('403')) {
-      console.warn('Git push failed (403). Falling back to GitHub API publish…')
+    const msg = String(e?.message || '')
+    if (msg.includes('403') || msg.includes('not a simple fast-forward') || msg.includes('Push rejected')) {
+      console.warn('Git push failed. Falling back to GitHub API publish…')
       await pushViaGitHubApi({ repoUrl, message: process.env.COMMIT_MESSAGE || 'Initial commit' })
       return
     }
