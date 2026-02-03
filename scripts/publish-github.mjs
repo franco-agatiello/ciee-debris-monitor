@@ -122,7 +122,21 @@ async function stageAll() {
   for (const filepath of files) {
     await git.add({ fs, dir, filepath })
   }
-  return files.length
+
+  // Also stage deletions and remove anything that is now ignored but tracked.
+  // This avoids accidentally keeping secret/artifact files in the repo.
+  let removed = 0
+  const tracked = await git.listFiles({ fs, dir })
+  for (const filepath of tracked) {
+    const abs = path.join(dir, filepath.split('/').join(path.sep))
+    const exists = await pathExists(abs)
+    if (!exists || ig.ignores(filepath)) {
+      await git.remove({ fs, dir, filepath })
+      removed++
+    }
+  }
+
+  return files.length + removed
 }
 
 async function hasStagedChanges() {
