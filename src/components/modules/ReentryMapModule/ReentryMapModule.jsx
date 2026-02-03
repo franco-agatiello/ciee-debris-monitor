@@ -781,6 +781,9 @@ function ReentryMapModule() {
               <div className="text-center">
                 <div className="text-sm font-bold">Fetching data…</div>
                 <div className="text-xs text-white/60 mt-2">Parsing CSV in a web worker.</div>
+                <div className="mt-3 w-56 max-w-[70vw] mx-auto opacity-70">
+                  <div className="inline-loading-bar" />
+                </div>
               </div>
             </div>
           </div>

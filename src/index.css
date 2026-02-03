@@ -31,6 +31,46 @@ body {
   @apply font-mono;
 }
 
+@keyframes subtle-indeterminate {
+  0% {
+    transform: translateX(-60%);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(160%);
+    opacity: 0;
+  }
+}
+
+.inline-loading-bar {
+  position: relative;
+  height: 2px;
+  width: 100%;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.inline-loading-bar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 42%;
+  background: linear-gradient(
+    90deg,
+    rgba(34, 211, 238, 0),
+    rgba(34, 211, 238, 0.6),
+    rgba(34, 211, 238, 0)
+  );
+  animation: subtle-indeterminate 1.2s ease-in-out infinite;
+  filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.25));
+}
+
 /* Leaflet popup: force cyberpunk high-contrast dark glass */
 .leaflet-popup.reentry-popup .leaflet-popup-content-wrapper,
 .leaflet-popup.reentry-popup .leaflet-popup-tip {

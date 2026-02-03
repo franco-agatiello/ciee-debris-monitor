@@ -21,6 +21,9 @@ pnpm-debug.log*
 # local github publish secrets (DO NOT COMMIT)
 .github-token
 .github-repo-url
+github_pat_*
+_gha-logs-*
+_gha-logs-*.zip
 
 # OS / editor
 .DS_Store
