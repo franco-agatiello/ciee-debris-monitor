@@ -1,0 +1,72 @@
+﻿2026-02-03T22:13:57.7719066Z ##[group]Run actions/checkout@v4
+2026-02-03T22:13:57.7720369Z with:
+2026-02-03T22:13:57.7721242Z   repository: franco-agatiello/ciee-debris-monitor
+2026-02-03T22:13:57.7722619Z   token: ***
+2026-02-03T22:13:57.7723346Z   ssh-strict: true
+2026-02-03T22:13:57.7724113Z   ssh-user: git
+2026-02-03T22:13:57.7725051Z   persist-credentials: true
+2026-02-03T22:13:57.7725920Z   clean: true
+2026-02-03T22:13:57.7726689Z   sparse-checkout-cone-mode: true
+2026-02-03T22:13:57.7727677Z   fetch-depth: 1
+2026-02-03T22:13:57.7728427Z   fetch-tags: false
+2026-02-03T22:13:57.7729222Z   show-progress: true
+2026-02-03T22:13:57.7730004Z   lfs: false
+2026-02-03T22:13:57.7730749Z   submodules: false
+2026-02-03T22:13:57.7731541Z   set-safe-directory: true
+2026-02-03T22:13:57.7732648Z ##[endgroup]
+2026-02-03T22:13:57.8835470Z Syncing repository: franco-agatiello/ciee-debris-monitor
+2026-02-03T22:13:57.8838069Z ##[group]Getting Git version info
+2026-02-03T22:13:57.8839534Z Working directory is '/home/runner/work/ciee-debris-monitor/ciee-debris-monitor'
+2026-02-03T22:13:57.8841587Z [command]/usr/bin/git version
+2026-02-03T22:13:57.8909828Z git version 2.52.0
+2026-02-03T22:13:57.8935621Z ##[endgroup]
+2026-02-03T22:13:57.8956924Z Temporarily overriding HOME='/home/runner/work/_temp/56eb6833-0bac-4c44-b813-9f14f92f9caa' before making global git config changes
+2026-02-03T22:13:57.8959950Z Adding repository directory to the temporary git global config as a safe directory
+2026-02-03T22:13:57.8962658Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/ciee-debris-monitor/ciee-debris-monitor
+2026-02-03T22:13:57.8999701Z Deleting the contents of '/home/runner/work/ciee-debris-monitor/ciee-debris-monitor'
+2026-02-03T22:13:57.9002942Z ##[group]Initializing the repository
+2026-02-03T22:13:57.9007353Z [command]/usr/bin/git init /home/runner/work/ciee-debris-monitor/ciee-debris-monitor
+2026-02-03T22:13:57.9116921Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-02-03T22:13:57.9119976Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-02-03T22:13:57.9124045Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-02-03T22:13:57.9126123Z hint: call:
+2026-02-03T22:13:57.9126922Z hint:
+2026-02-03T22:13:57.9127792Z hint: 	git config --global init.defaultBranch <name>
+2026-02-03T22:13:57.9129318Z hint:
+2026-02-03T22:13:57.9130408Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-02-03T22:13:57.9132102Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-02-03T22:13:57.9133422Z hint:
+2026-02-03T22:13:57.9134572Z hint: 	git branch -m <name>
+2026-02-03T22:13:57.9135885Z hint:
+2026-02-03T22:13:57.9137419Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-02-03T22:13:57.9139535Z Initialized empty Git repository in /home/runner/work/ciee-debris-monitor/ciee-debris-monitor/.git/
+2026-02-03T22:13:57.9142821Z [command]/usr/bin/git remote add origin https://github.com/franco-agatiello/ciee-debris-monitor
+2026-02-03T22:13:57.9169785Z ##[endgroup]
+2026-02-03T22:13:57.9171221Z ##[group]Disabling automatic garbage collection
+2026-02-03T22:13:57.9172978Z [command]/usr/bin/git config --local gc.auto 0
+2026-02-03T22:13:57.9200923Z ##[endgroup]
+2026-02-03T22:13:57.9202133Z ##[group]Setting up auth
+2026-02-03T22:13:57.9208359Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-02-03T22:13:57.9240552Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-02-03T22:13:57.9595495Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-02-03T22:13:57.9625938Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-02-03T22:13:57.9846706Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-02-03T22:13:57.9876910Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-02-03T22:13:58.0098110Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-02-03T22:13:58.0132730Z ##[endgroup]
+2026-02-03T22:13:58.0135155Z ##[group]Fetching the repository
+2026-02-03T22:13:58.0144008Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +b165c793ec12776409f37f51054f7e2756d22a0c:refs/remotes/origin/main
+2026-02-03T22:14:03.2107935Z From https://github.com/franco-agatiello/ciee-debris-monitor
+2026-02-03T22:14:03.2109055Z  * [new ref]         b165c793ec12776409f37f51054f7e2756d22a0c -> origin/main
+2026-02-03T22:14:03.2141745Z ##[endgroup]
+2026-02-03T22:14:03.2142501Z ##[group]Determining the checkout info
+2026-02-03T22:14:03.2147121Z ##[endgroup]
+2026-02-03T22:14:03.2151747Z [command]/usr/bin/git sparse-checkout disable
+2026-02-03T22:14:03.2192539Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-02-03T22:14:03.2219184Z ##[group]Checking out the ref
+2026-02-03T22:14:03.2223596Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-02-03T22:14:03.4773931Z Switched to a new branch 'main'
+2026-02-03T22:14:03.4775529Z branch 'main' set up to track 'origin/main'.
+2026-02-03T22:14:03.4785634Z ##[endgroup]
+2026-02-03T22:14:03.4829229Z [command]/usr/bin/git log -1 --format=%H
+2026-02-03T22:14:03.4853591Z b165c793ec12776409f37f51054f7e2756d22a0c

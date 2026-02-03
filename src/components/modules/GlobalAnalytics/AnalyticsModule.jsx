@@ -221,22 +221,6 @@ async function parseCsvStream(url, onRow, onProgress, signal) {
     console.warn('CSV stream worker parse failed; retrying without worker:', err)
     return await run(false, 45000)
   }
-
-    if (signal) {
-      signal.addEventListener(
-        'abort',
-        () => {
-          try {
-            parser?.abort?.()
-          } catch {
-            // ignore
-          }
-          reject(new Error('aborted'))
-        },
-        { once: true },
-      )
-    }
-  })
 }
 
 function AnalyticsModule() {
