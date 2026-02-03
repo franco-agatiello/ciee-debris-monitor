@@ -1,0 +1,37 @@
+﻿2026-02-03T22:23:06.3557118Z ##[group]Run npm run build
+2026-02-03T22:23:06.3557389Z [36;1mnpm run build[0m
+2026-02-03T22:23:06.3588721Z shell: /usr/bin/bash -e {0}
+2026-02-03T22:23:06.3588940Z env:
+2026-02-03T22:23:06.3589118Z   GITHUB_PAGES: true
+2026-02-03T22:23:06.3589325Z ##[endgroup]
+2026-02-03T22:23:06.4686851Z 
+2026-02-03T22:23:06.4687504Z > ciee-space-watch-suite@0.0.1 build
+2026-02-03T22:23:06.4688068Z > npm run precompute:analytics && vite build
+2026-02-03T22:23:06.4688344Z 
+2026-02-03T22:23:06.5735708Z 
+2026-02-03T22:23:06.5736751Z > ciee-space-watch-suite@0.0.1 precompute:analytics
+2026-02-03T22:23:06.5738759Z > node scripts/precompute-analytics.mjs
+2026-02-03T22:23:06.5739142Z 
+2026-02-03T22:23:08.0736380Z Wrote /home/runner/work/ciee-debris-monitor/ciee-debris-monitor/public/data/analytics.precomputed.json
+2026-02-03T22:23:08.3172377Z [36mvite v5.4.21 [32mbuilding for production...[36m[39m
+2026-02-03T22:23:08.5826160Z transforming...
+2026-02-03T22:23:17.6163524Z [32m✓[39m 1557 modules transformed.
+2026-02-03T22:23:18.2210708Z rendering chunks...
+2026-02-03T22:23:18.7430803Z computing gzip size...
+2026-02-03T22:23:18.7945355Z [2mdist/[22m[32mindex.html                            [39m[1m[2m    0.75 kB[22m[1m[22m[2m │ gzip:   0.41 kB[22m
+2026-02-03T22:23:18.7947478Z [2mdist/[22m[2massets/[22m[35mindex-DjiK492J.css             [39m[1m[2m   33.08 kB[22m[1m[22m[2m │ gzip:  10.68 kB[22m
+2026-02-03T22:23:18.7949523Z [2mdist/[22m[2massets/[22m[36mRiskCollision-BMxghnaJ.js      [39m[1m[2m    1.22 kB[22m[1m[22m[2m │ gzip:   0.47 kB[22m
+2026-02-03T22:23:18.7951811Z [2mdist/[22m[2massets/[22m[36mLandingPage-D-_tBprf.js        [39m[1m[2m    2.72 kB[22m[1m[22m[2m │ gzip:   1.24 kB[22m
+2026-02-03T22:23:18.7952728Z [33m
+2026-02-03T22:23:18.7953332Z (!) Some chunks are larger than 500 kB after minification. Consider:
+2026-02-03T22:23:18.7954102Z - Using dynamic import() to code-split the application
+2026-02-03T22:23:18.7955426Z - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+2026-02-03T22:23:18.7957279Z [2mdist/[22m[2massets/[22m[36mDashboardLayout-BVHBAOJa.js    [39m[1m[2m    3.82 kB[22m[1m[22m[2m │ gzip:   1.57 kB[22m
+2026-02-03T22:23:18.7959333Z [2mdist/[22m[2massets/[22m[36mOrbitMonitor3D-gfYJP-Sf.js     [39m[1m[2m   17.44 kB[22m[1m[22m[2m │ gzip:   5.87 kB[22m
+2026-02-03T22:23:18.7961156Z [2mdist/[22m[2massets/[22m[36museDeferredRender-NAo1Tn5e.js  [39m[1m[2m   41.16 kB[22m[1m[22m[2m │ gzip:  16.14 kB[22m
+2026-02-03T22:23:18.7962834Z [2mdist/[22m[2massets/[22m[36mReentryMapModule-CEd-itwe.js   [39m[1m[2m  189.09 kB[22m[1m[22m[2m │ gzip:  54.99 kB[22m
+2026-02-03T22:23:18.7964397Z [2mdist/[22m[2massets/[22m[36mindex-eX1qjcSC.js              [39m[1m[2m  291.26 kB[22m[1m[22m[2m │ gzip:  95.36 kB[22m
+2026-02-03T22:23:18.7965990Z [2mdist/[22m[2massets/[22m[36mGlobalAnalytics-BwE6HAyn.js    [39m[1m[2m  419.50 kB[22m[1m[22m[2m │ gzip: 110.28 kB[22m
+2026-02-03T22:23:18.7967592Z [2mdist/[22m[2massets/[22m[36mcsv-19Zxb1HR.js                [39m[1m[33m1,811.49 kB[39m[22m[2m │ gzip: 518.18 kB[22m
+2026-02-03T22:23:18.7968856Z - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+2026-02-03T22:23:18.7969642Z [32m✓ built in 10.45s[39m

@@ -1,0 +1,4 @@
+﻿2026-02-03T22:23:18.8817254Z ##[group]Run cp dist/index.html dist/404.html
+2026-02-03T22:23:18.8817610Z [36;1mcp dist/index.html dist/404.html[0m
+2026-02-03T22:23:18.8848490Z shell: /usr/bin/bash -e {0}
+2026-02-03T22:23:18.8848723Z ##[endgroup]

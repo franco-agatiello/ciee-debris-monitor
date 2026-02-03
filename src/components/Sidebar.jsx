@@ -1,12 +1,13 @@
 import { NavLink } from 'react-router-dom'
+import { Activity, Globe, LayoutGrid, Map, ShieldAlert } from 'lucide-react'
 import { publicUrl } from '../utils/publicUrl'
 
 const links = [
-  { to: '/', label: 'Mission Hub', hint: 'Landing' },
-  { to: '/dashboard/analytics', label: 'Analytics', hint: 'Global trends' },
-  { to: '/dashboard/map', label: 'Reentry Map', hint: '2D map + 3D orbit' },
-  { to: '/dashboard/orbit', label: 'Orbit Monitor', hint: '3D globe' },
-  { to: '/dashboard/risk', label: 'Risk', hint: 'Coming soon' },
+  { to: '/', label: 'Mission Hub', hint: 'Landing', Icon: LayoutGrid },
+  { to: '/dashboard/analytics', label: 'Analytics', hint: 'Global trends', Icon: Activity },
+  { to: '/dashboard/map', label: 'Reentry Map', hint: '2D map + 3D orbit', Icon: Map },
+  { to: '/dashboard/orbit', label: 'Orbit Monitor', hint: '3D globe', Icon: Globe },
+  { to: '/dashboard/risk', label: 'Risk', hint: 'Coming soon', Icon: ShieldAlert },
 ]
 
 export default function Sidebar() {
@@ -35,8 +36,27 @@ export default function Sidebar() {
               }`
             }
           >
-            <div className="text-sm font-bold">{l.label}</div>
-            <div className="text-xs text-white/60">{l.hint}</div>
+            {({ isActive }) => {
+              const Icon = l.Icon
+              return (
+                <div className="flex items-center gap-3">
+                  <Icon
+                    className={
+                      isActive
+                        ? 'h-5 w-5 text-cyan-200 drop-shadow-[0_0_12px_rgba(34,211,238,0.55)]'
+                        : 'h-5 w-5 text-gray-400/80'
+                    }
+                    aria-hidden="true"
+                  />
+                  <div className="min-w-0">
+                    <div className={isActive ? 'text-sm font-bold text-white' : 'text-sm font-bold text-white/90'}>
+                      {l.label}
+                    </div>
+                    <div className={isActive ? 'text-xs text-cyan-100/75' : 'text-xs text-white/60'}>{l.hint}</div>
+                  </div>
+                </div>
+              )
+            }}
           </NavLink>
         ))}
       </nav>
