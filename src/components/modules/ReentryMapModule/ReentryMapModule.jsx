@@ -559,7 +559,7 @@ function ReentryMapModule() {
       out.push({
         norad: toStringSafe(r.NORAD_CAT_ID),
         name: toStringSafe(r.OBJECT_NAME),
-        country: toStringSafe(r.COUNTRY_CODE),
+        country: toStringSafe(r.COUNTRY_CODE) || '??',
         fallCountry: toStringSafe(r.pais_caida_calc),
         clase: clsInfo.label,
         claseRaw: clsInfo.raw,
