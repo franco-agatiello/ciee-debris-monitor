@@ -15,6 +15,10 @@ const CLASS_COLORS = {
   unknown: '#94a3b8',
 }
 
+const EARTH_RADIUS_KM = 6371
+const ORBIT_ALTITUDE_VISUAL_SCALE = 1.9
+const MAX_ALTITUDE_RATIO = 6.2
+
 function normalizeClass(clase) {
   const s = String(clase || '').toLowerCase()
   if (s.includes('payload') || s.includes('carga')) return 'payload'
@@ -68,6 +72,16 @@ function safeParseDate(value) {
   return Number.isNaN(dd.getTime()) ? null : dd
 }
 
+function clamp(n, a, b) {
+  return Math.max(a, Math.min(b, n))
+}
+
+function altitudeKmToVisualRatio(altKm) {
+  if (!Number.isFinite(altKm)) return Number.NaN
+  const physicalRatio = altKm / EARTH_RADIUS_KM
+  return clamp(physicalRatio * ORBIT_ALTITUDE_VISUAL_SCALE, 0.001, MAX_ALTITUDE_RATIO)
+}
+
 function degToRad(d) {
   return (d * Math.PI) / 180
 }
@@ -103,7 +117,6 @@ function computeOrbitLine(globeRadius, tle1, tle2, centerTime) {
   const end = centerTime
   const stepMin = periodMin > 360 ? 3 : 1
 
-  const EARTH_RADIUS_KM = 6371
   const pts = []
 
   for (let t = start.getTime(); t <= end.getTime(); t += stepMin * 60000) {
@@ -116,7 +129,7 @@ function computeOrbitLine(globeRadius, tle1, tle2, centerTime) {
     const lon = satellite.degreesLong(geo.longitude)
     const heightKm = geo.height
     if (!Number.isFinite(lat) || !Number.isFinite(lon) || !Number.isFinite(heightKm)) continue
-    const altR = heightKm / EARTH_RADIUS_KM
+    const altR = altitudeKmToVisualRatio(heightKm)
 
     const [ux, uy, uz] = geoToUnitXYZ(lat, lon, altR)
     pts.push(new THREE.Vector3(ux * globeRadius, uy * globeRadius, uz * globeRadius))
@@ -222,7 +235,7 @@ function Orbit3DModal({ open, point, onClose }) {
           <Globe
             key={`${point?.norad || 'x'}-${open ? 'open' : 'closed'}`}
             backgroundColor="#02040a"
-              globeImageUrl={publicUrl('/img/earthmap1k.jpg')}
+            globeImageUrl={publicUrl('/img/BlackMarble_2016_3km.jpg')}
             showAtmosphere
             atmosphereColor="#3d7cff"
             atmosphereAltitude={0.12}

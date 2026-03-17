@@ -5,9 +5,20 @@ import * as THREE from 'three'
 import { loadCsv, toStringSafe } from '../../../utils/csv.js'
 import { useDeferredRender } from '../../../hooks/useDeferredRender.js'
 import { publicUrl } from '../../../utils/publicUrl'
+import { useI18n } from '../../../i18n/I18nProvider.jsx'
 
 function clamp(n, a, b) {
   return Math.max(a, Math.min(b, n))
+}
+
+const EARTH_RADIUS_KM = 6371
+const ORBIT_ALTITUDE_VISUAL_SCALE = 1.9
+const MAX_ALTITUDE_RATIO = 6.2
+
+function altitudeKmToVisualRatio(altKm) {
+  if (!Number.isFinite(altKm)) return Number.NaN
+  const physicalRatio = altKm / EARTH_RADIUS_KM
+  return clamp(physicalRatio * ORBIT_ALTITUDE_VISUAL_SCALE, 0.001, MAX_ALTITUDE_RATIO)
 }
 
 function normalizeClassName(v) {
@@ -84,6 +95,7 @@ function isWebGLAvailable() {
 }
 
 function OrbitMonitor3D() {
+  const { tr } = useI18n()
   const heavyReady = useDeferredRender({ delayMs: 800 })
 
   const globeRef = useRef(null)
@@ -98,6 +110,8 @@ function OrbitMonitor3D() {
   const builtFrameIndexRef = useRef(0)
   const rafRef = useRef(0)
   const lastTickRef = useRef(0)
+  const lastRenderRef = useRef(0)
+  const interpolatedFrameRef = useRef(null)
   const buildCancelRef = useRef({ cancel: false })
   const filteredSatsRef = useRef([])
 
@@ -111,13 +125,14 @@ function OrbitMonitor3D() {
   const [classFilter, setClassFilter] = useState('all')
   const [maxObjects, setMaxObjects] = useState(33000)
   const [autoRotate, setAutoRotate] = useState(true)
+  const [clarityMode, setClarityMode] = useState(true)
 
   const [bufferStatus, setBufferStatus] = useState('idle') // idle | building | ready
   const [bufferProgress, setBufferProgress] = useState(0) // seconds buffered ahead
   const [bufferErr, setBufferErr] = useState('')
   const [showAll, setShowAll] = useState(true)
 
-  const [globeImgUrl, setGlobeImgUrl] = useState(publicUrl('/img/earthmap_ref.jpg'))
+  const [globeImgUrl] = useState(publicUrl('/img/BlackMarble_2016_3km.jpg'))
 
   const [isFullscreen, setIsFullscreen] = useState(false)
 
@@ -153,51 +168,44 @@ function OrbitMonitor3D() {
     }
   }
 
-  const pointSprite = useMemo(() => {
-    // Small radial gradient texture to create a subtle halo.
-    const size = 64
-    const canvas = document.createElement('canvas')
-    canvas.width = size
-    canvas.height = size
-    const ctx = canvas.getContext('2d')
-    const cx = size / 2
-    const cy = size / 2
-    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, size / 2)
-    g.addColorStop(0, 'rgba(255,255,255,1)')
-    g.addColorStop(0.25, 'rgba(255,255,255,0.9)')
-    g.addColorStop(0.55, 'rgba(255,255,255,0.25)')
-    g.addColorStop(1, 'rgba(255,255,255,0)')
-    ctx.fillStyle = g
-    ctx.fillRect(0, 0, size, size)
+  const pointSprites = useMemo(() => {
+    const makeSprite = (kind) => {
+      const size = 64
+      const canvas = document.createElement('canvas')
+      canvas.width = size
+      canvas.height = size
+      const ctx = canvas.getContext('2d')
+      const cx = size / 2
+      const cy = size / 2
+      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, size / 2)
 
-    const tex = new THREE.CanvasTexture(canvas)
-    tex.minFilter = THREE.LinearFilter
-    tex.magFilter = THREE.LinearFilter
-    tex.needsUpdate = true
-    return tex
-  }, [])
+      if (kind === 'core') {
+        // Crisp inner core similar to satellite-map points.
+        g.addColorStop(0, 'rgba(255,255,255,1)')
+        g.addColorStop(0.52, 'rgba(255,255,255,1)')
+        g.addColorStop(0.82, 'rgba(255,255,255,0.95)')
+        g.addColorStop(1, 'rgba(255,255,255,0)')
+      } else {
+        // Wider soft halo to keep points visible over dark earth and stars.
+        g.addColorStop(0, 'rgba(255,255,255,0.95)')
+        g.addColorStop(0.28, 'rgba(255,255,255,0.55)')
+        g.addColorStop(0.62, 'rgba(255,255,255,0.12)')
+        g.addColorStop(1, 'rgba(255,255,255,0)')
+      }
 
-  useEffect(() => {
-    // Prefer a user-provided higher-res texture, but fall back gracefully.
-    const preferred = publicUrl('/img/earthmap_ref.jpg')
-    const fallback = publicUrl('/img/earthmap1k.jpg')
+      ctx.fillStyle = g
+      ctx.fillRect(0, 0, size, size)
 
-    let done = false
-    const img = new Image()
-    img.onload = () => {
-      if (done) return
-      done = true
-      setGlobeImgUrl(preferred)
+      const tex = new THREE.CanvasTexture(canvas)
+      tex.minFilter = THREE.LinearFilter
+      tex.magFilter = THREE.LinearFilter
+      tex.needsUpdate = true
+      return tex
     }
-    img.onerror = () => {
-      if (done) return
-      done = true
-      setGlobeImgUrl(fallback)
-    }
-    img.src = preferred
 
-    return () => {
-      done = true
+    return {
+      core: makeSprite('core'),
+      glow: makeSprite('glow'),
     }
   }, [])
 
@@ -312,6 +320,16 @@ function OrbitMonitor3D() {
     }
   }, [])
 
+  const classLabelMap = useMemo(
+    () => ({
+      PAYLOAD: tr('Carga util', 'Payload'),
+      'ROCKET BODY': tr('Cuerpo de cohete', 'Rocket Body'),
+      DEBRIS: tr('Basura', 'Debris'),
+      UNKNOWN: tr('Desconocido', 'Unknown'),
+    }),
+    [tr],
+  )
+
   const filteredSats = useMemo(() => {
     const q = debouncedQuery.trim().toLowerCase()
 
@@ -356,7 +374,7 @@ function OrbitMonitor3D() {
       }
 
       // Make picking easier without being too jumpy.
-      raycaster.params.Points.threshold = Math.max(0.5, radius * 0.012)
+      raycaster.params.Points.threshold = Math.max(0.55, radius * (clarityMode ? 0.015 : 0.012))
 
       const rect = host.getBoundingClientRect()
       const x = ev.clientX - rect.left
@@ -407,7 +425,7 @@ function OrbitMonitor3D() {
       host.removeEventListener('pointermove', onMove)
       host.removeEventListener('pointerleave', onLeave)
     }
-  }, [webglOk])
+  }, [webglOk, clarityMode])
 
   const legendItems = useMemo(() => {
     const counts = new Map()
@@ -419,10 +437,11 @@ function OrbitMonitor3D() {
     const order = ['PAYLOAD', 'ROCKET BODY', 'DEBRIS', 'UNKNOWN']
     return order.map((key) => ({
       key,
+      label: classLabelMap[key] || key,
       count: counts.get(key) || 0,
       color: classColorMap[key] || '#9ca3af',
     }))
-  }, [filteredSats, classColorMap])
+  }, [filteredSats, classColorMap, classLabelMap])
 
   // Streaming buffer settings
   const SIM_STEP_SEC = 1
@@ -439,6 +458,39 @@ function OrbitMonitor3D() {
     attr.needsUpdate = true
   }
 
+  function applyInterpolatedFrame(frameA, frameB, t) {
+    const attr = positionsAttrRef.current
+    if (!attr || !frameA || !frameB) return
+    if (frameA.length !== frameB.length || attr.array.length !== frameA.length) return
+
+    const alpha = clamp(t, 0, 1)
+    if (alpha <= 0.001) {
+      applyFramePositions(frameA)
+      return
+    }
+    if (alpha >= 0.999) {
+      applyFramePositions(frameB)
+      return
+    }
+
+    let out = interpolatedFrameRef.current
+    if (!out || out.length !== frameA.length) {
+      out = new Float32Array(frameA.length)
+      interpolatedFrameRef.current = out
+    }
+
+    for (let i = 0; i < frameA.length; i++) {
+      const a = frameA[i]
+      const b = frameB[i]
+      if (Number.isFinite(a) && Number.isFinite(b)) out[i] = a + (b - a) * alpha
+      else if (Number.isFinite(b)) out[i] = b
+      else out[i] = a
+    }
+
+    attr.array.set(out)
+    attr.needsUpdate = true
+  }
+
   function getFrame(frameIndex) {
     const first = firstFrameIndexRef.current
     const offset = frameIndex - first
@@ -449,7 +501,7 @@ function OrbitMonitor3D() {
 
   function trimOldFrames() {
     // Keep current frame as the earliest frame in the buffer
-    const keepFrom = playIndexRef.current
+    const keepFrom = Math.floor(playIndexRef.current)
     const first = firstFrameIndexRef.current
     const drop = keepFrom - first
     if (drop <= 0) return
@@ -465,7 +517,10 @@ function OrbitMonitor3D() {
     firstFrameIndexRef.current = 0
     builtFrameIndexRef.current = 0
     playIndexRef.current = 0
+    interpolatedFrameRef.current = null
     baseDateRef.current = null
+    lastTickRef.current = 0
+    lastRenderRef.current = 0
     setBufferStatus('idle')
     setBufferProgress(0)
     setBufferErr('')
@@ -542,7 +597,7 @@ function OrbitMonitor3D() {
           continue
         }
 
-        const altR = clamp(altKm / 6371, 0.001, 0.35)
+        const altR = altitudeKmToVisualRatio(altKm)
         const [x, y, z] = geoToUnitXYZ(lat, lng, altR)
         positions[o] = x
         positions[o + 1] = y
@@ -579,7 +634,7 @@ function OrbitMonitor3D() {
           framesRef.current.push(positions)
           builtFrameIndexRef.current += 1
 
-          const bufferedAhead = Math.max(0, builtFrameIndexRef.current - playIndexRef.current)
+          const bufferedAhead = Math.max(0, builtFrameIndexRef.current - Math.floor(playIndexRef.current))
           setBufferProgress(Math.min(MAX_BUFFER_FRAMES, bufferedAhead))
 
           if (bufferStatus !== 'ready' && framesRef.current.length >= MIN_START_FRAMES) {
@@ -607,25 +662,40 @@ function OrbitMonitor3D() {
     if (err) return
     if (!filteredSats.length) return
 
-    const frameMs = Math.floor(1000 / FIXED_PLAY_FPS)
+    const renderFps = filteredSats.length > 30000 ? 16 : filteredSats.length > 15000 ? 22 : 30
+    const renderIntervalMs = 1000 / renderFps
 
     const tick = (ts) => {
-      if (!lastTickRef.current) lastTickRef.current = ts
-
-      const elapsed = ts - lastTickRef.current
-      if (elapsed >= frameMs && bufferStatus === 'ready') {
-        // Only advance if next frame exists
-        const nextFrame = getFrame(playIndexRef.current + 1)
-        if (nextFrame) {
-          playIndexRef.current += 1
-          applyFramePositions(nextFrame)
-          trimOldFrames()
-        } else {
-          // If buffer is empty, keep showing current frame
-          const cur = getFrame(playIndexRef.current)
-          if (cur) applyFramePositions(cur)
-        }
+      if (!lastTickRef.current) {
         lastTickRef.current = ts
+        lastRenderRef.current = ts
+      }
+
+      const dtMs = ts - lastTickRef.current
+      lastTickRef.current = ts
+
+      if (bufferStatus === 'ready') {
+        const maxBase = Math.max(0, builtFrameIndexRef.current - 2)
+        const maxCursor = maxBase + 0.999
+        const advance = (dtMs / 1000) * FIXED_PLAY_FPS
+        playIndexRef.current = Math.min(playIndexRef.current + advance, maxCursor)
+
+        const shouldRender = ts - lastRenderRef.current >= renderIntervalMs
+        if (shouldRender) {
+          const base = Math.floor(playIndexRef.current)
+          const frac = playIndexRef.current - base
+          const frameA = getFrame(base)
+          const frameB = getFrame(base + 1)
+
+          if (frameA && frameB) applyInterpolatedFrame(frameA, frameB, frac)
+          else if (frameA) applyFramePositions(frameA)
+
+          trimOldFrames()
+          lastRenderRef.current = ts
+        }
+      } else {
+        const cur = getFrame(Math.floor(playIndexRef.current))
+        if (cur) applyFramePositions(cur)
       }
 
       rafRef.current = requestAnimationFrame(tick)
@@ -636,6 +706,7 @@ function OrbitMonitor3D() {
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
       rafRef.current = 0
       lastTickRef.current = 0
+      lastRenderRef.current = 0
     }
   }, [webglOk, err, filteredSats.length, bufferStatus, heavyReady])
 
@@ -643,9 +714,9 @@ function OrbitMonitor3D() {
     <div className="h-full flex flex-col">
       <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between gap-3">
         <div>
-          <div className="text-xl font-extrabold tracking-tight">Orbit Monitor 3D</div>
+          <div className="text-xl font-extrabold tracking-tight">{tr('Monitor orbital 3D', 'Orbit Monitor 3D')}</div>
           <div className="text-sm text-white/70 mt-1">
-            Real-time TLE propagation (<span className="mono">satellite.js</span>) · Rendered on globe (<span className="mono">react-globe.gl</span>)
+            {tr('Propagacion TLE en tiempo real', 'Real-time TLE propagation')} (<span className="mono">satellite.js</span>) · {tr('Render sobre globo', 'Rendered on globe')} (<span className="mono">react-globe.gl</span>)
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -654,41 +725,41 @@ function OrbitMonitor3D() {
             onClick={toggleFullscreen}
             className="px-3 py-2 rounded-xl border text-sm font-bold transition bg-white/5 border-white/10 hover:bg-white/10"
           >
-            {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+            {isFullscreen ? tr('Salir de pantalla completa', 'Exit Fullscreen') : tr('Pantalla completa', 'Fullscreen')}
           </button>
           <div className="text-xs text-white/60 mono">
-            Objects: {filteredSats.length} / {sats.length}
-            {bufferStatus === 'building' ? ` · Buffer: ${Math.round(bufferProgress * 100)}%` : ''}
+            {tr('Objetos', 'Objects')}: {filteredSats.length} / {sats.length}
+            {bufferStatus === 'building' ? ` · ${tr('Buffer', 'Buffer')}: ${Math.round(bufferProgress * 100)}%` : ''}
           </div>
         </div>
       </div>
 
       <div className="px-5 py-3 border-b border-white/10 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div className="flex flex-col md:flex-row md:items-center gap-2">
-          <label className="text-xs text-white/60">Search</label>
+          <label className="text-xs text-white/60">{tr('Buscar', 'Search')}</label>
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="NORAD or name…"
+            placeholder={tr('NORAD o nombre…', 'NORAD or name…')}
             className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm outline-none focus:bg-white/10 focus:border-white/20 w-full md:w-[320px]"
           />
         </div>
 
         <div className="flex flex-col md:flex-row md:items-center gap-2">
-          <label className="text-xs text-white/60">Class</label>
+          <label className="text-xs text-white/60">{tr('Clase', 'Class')}</label>
           <select
             value={classFilter}
             onChange={(e) => setClassFilter(e.target.value)}
             className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm outline-none focus:bg-white/10 focus:border-white/20"
           >
-            <option value="all">All</option>
-            <option value="payload">Payload</option>
-            <option value="rocket body">Rocket Body</option>
-            <option value="debris">Debris</option>
-            <option value="unknown">Unknown</option>
+            <option value="all">{tr('Todas', 'All')}</option>
+            <option value="payload">{tr('Carga util', 'Payload')}</option>
+            <option value="rocket body">{tr('Cuerpo de cohete', 'Rocket Body')}</option>
+            <option value="debris">{tr('Basura', 'Debris')}</option>
+            <option value="unknown">{tr('Desconocido', 'Unknown')}</option>
           </select>
 
-          <label className="text-xs text-white/60 md:ml-2">Limit</label>
+          <label className="text-xs text-white/60 md:ml-2">{tr('Limite', 'Limit')}</label>
           <input
             type="number"
             min={100}
@@ -705,7 +776,7 @@ function OrbitMonitor3D() {
               checked={showAll}
               onChange={(e) => setShowAll(e.target.checked)}
             />
-            Render all
+            {tr('Renderizar todo', 'Render all')}
           </label>
 
           <button
@@ -715,7 +786,17 @@ function OrbitMonitor3D() {
               autoRotate ? 'bg-white/10 border-white/20' : 'bg-white/5 border-white/10 hover:bg-white/10'
             }`}
           >
-            Auto-rotate
+            {tr('Auto-rotar', 'Auto-rotate')}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setClarityMode((v) => !v)}
+            className={`px-3 py-2 rounded-xl border text-sm font-bold transition ${
+              clarityMode ? 'bg-cyan-500/15 border-cyan-300/35 text-cyan-100' : 'bg-white/5 border-white/10 hover:bg-white/10'
+            }`}
+          >
+            {clarityMode ? tr('Alta claridad: ON', 'High clarity: ON') : tr('Alta claridad: OFF', 'High clarity: OFF')}
           </button>
         </div>
       </div>
@@ -724,10 +805,10 @@ function OrbitMonitor3D() {
         {err ? (
           <div className="p-5">
             <div className="glass rounded-2xl p-4">
-              <div className="text-sm font-bold">Failed to load CSV</div>
+              <div className="text-sm font-bold">{tr('No se pudo cargar el CSV', 'Failed to load CSV')}</div>
               <div className="mono text-xs text-red-300 mt-2">{err}</div>
               <div className="text-xs text-white/60 mt-3">
-                Verify the file exists at <span className="mono">/public/data/debris_orbita.csv</span> and includes <span className="mono">TLE_LINE1</span> + <span className="mono">TLE_LINE2</span>.
+                {tr('Verifica que exista el archivo en', 'Verify the file exists at')} <span className="mono">/public/data/debris_orbita.csv</span> {tr('e incluya', 'and includes')} <span className="mono">TLE_LINE1</span> + <span className="mono">TLE_LINE2</span>.
               </div>
             </div>
           </div>
@@ -735,8 +816,8 @@ function OrbitMonitor3D() {
           <div className="absolute inset-0 p-5">
             <div className="glass rounded-2xl p-4 h-full flex items-center justify-center">
               <div className="text-center">
-                <div className="text-sm font-bold">Fetching data…</div>
-                <div className="text-xs text-white/60 mt-2">Parsing CSV in a web worker.</div>
+                <div className="text-sm font-bold">{tr('Cargando datos…', 'Fetching data…')}</div>
+                <div className="text-xs text-white/60 mt-2">{tr('Procesando CSV en un web worker.', 'Parsing CSV in a web worker.')}</div>
                 <div className="mt-3 w-56 max-w-[70vw] mx-auto opacity-70">
                   <div className="inline-loading-bar" />
                 </div>
@@ -746,16 +827,16 @@ function OrbitMonitor3D() {
         ) : bufferErr ? (
           <div className="p-5">
             <div className="glass rounded-2xl p-4">
-              <div className="text-sm font-bold">Failed to build buffer</div>
+              <div className="text-sm font-bold">{tr('No se pudo construir el buffer', 'Failed to build buffer')}</div>
               <div className="mono text-xs text-red-300 mt-2 whitespace-pre-wrap">{bufferErr}</div>
             </div>
           </div>
         ) : !webglOk ? (
           <div className="p-5">
             <div className="glass rounded-2xl p-4">
-              <div className="text-sm font-bold">WebGL not available</div>
+              <div className="text-sm font-bold">{tr('WebGL no disponible', 'WebGL not available')}</div>
               <div className="text-xs text-white/60 mt-2">
-                The 3D globe needs WebGL. Try updating your GPU drivers, enabling hardware acceleration, or using a different browser.
+                {tr('El globo 3D necesita WebGL. Prueba actualizar drivers de GPU, habilitar aceleracion por hardware o usar otro navegador.', 'The 3D globe needs WebGL. Try updating your GPU drivers, enabling hardware acceleration, or using a different browser.')}
               </div>
             </div>
           </div>
@@ -763,8 +844,8 @@ function OrbitMonitor3D() {
           <div className="absolute inset-0 p-5">
             <div className="glass rounded-2xl p-4 h-full flex items-center justify-center">
               <div className="text-center">
-                <div className="text-sm font-bold">Preparing 3D scene…</div>
-                <div className="text-xs text-white/60 mt-2">Mounting deferred until after transition.</div>
+                <div className="text-sm font-bold">{tr('Preparando escena 3D…', 'Preparing 3D scene…')}</div>
+                <div className="text-xs text-white/60 mt-2">{tr('Montaje diferido hasta terminar la transicion.', 'Mounting deferred until after transition.')}</div>
               </div>
             </div>
           </div>
@@ -837,77 +918,100 @@ function OrbitMonitor3D() {
                 geometry.setAttribute('position', attr)
                 geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
 
-                const material = new THREE.PointsMaterial({
+                const glowMaterial = new THREE.PointsMaterial({
                   vertexColors: true,
-                  size: 0.42,
+                  size: clarityMode ? 0.96 : 0.64,
                   sizeAttenuation: true,
                   transparent: true,
-                  opacity: 1,
-                  map: pointSprite,
-                  alphaTest: 0.04,
-                  blending: THREE.NormalBlending,
+                  opacity: clarityMode ? 0.5 : 0.42,
+                  map: pointSprites.glow,
+                  alphaTest: 0.02,
+                  blending: THREE.AdditiveBlending,
                   depthWrite: false,
                 })
 
-                const pts = new THREE.Points(geometry, material)
-                pts.frustumCulled = false
-                // Our positions are in Earth radii; scale to the actual globe radius.
-                pts.scale.setScalar(globeRadius)
+                const coreMaterial = new THREE.PointsMaterial({
+                  vertexColors: true,
+                  size: clarityMode ? 0.3 : 0.22,
+                  sizeAttenuation: true,
+                  transparent: true,
+                  opacity: 1,
+                  map: pointSprites.core,
+                  alphaTest: clarityMode ? 0.28 : 0.18,
+                  blending: THREE.NormalBlending,
+                  depthWrite: true,
+                })
+
+                const glowPts = new THREE.Points(geometry, glowMaterial)
+                glowPts.frustumCulled = false
+                glowPts.renderOrder = 10
+                glowPts.scale.setScalar(globeRadius)
+
+                const corePts = new THREE.Points(geometry, coreMaterial)
+                corePts.frustumCulled = false
+                corePts.renderOrder = 11
+                corePts.scale.setScalar(globeRadius)
+
+                const group = new THREE.Group()
+                group.add(glowPts)
+                group.add(corePts)
+                group.frustumCulled = false
 
                 globeRadiusRef.current = globeRadius
 
-                pointsObjRef.current = pts
+                // Use the crisp core layer for raycasting/picking.
+                pointsObjRef.current = corePts
                 positionsAttrRef.current = attr
 
                 // Apply current frame immediately if available
                 const frames = framesRef.current
                 if (frames?.length) {
-                  const frame = frames[playIndexRef.current] || frames[0]
+                  const frame = frames[Math.floor(playIndexRef.current)] || frames[0]
                   if (frame && frame.length === attr.array.length) {
                     attr.array.set(frame)
                     attr.needsUpdate = true
                   }
                 }
 
-                return pts
+                return group
               }}
             />
 
             {bufferStatus === 'building' ? (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="glass rounded-2xl px-5 py-4">
-                  <div className="text-sm font-bold">Buffering next seconds…</div>
+                  <div className="text-sm font-bold">{tr('Bufferizando siguientes segundos…', 'Buffering next seconds…')}</div>
                   <div className="text-xs text-white/60 mt-2">
-                    Buffered: {Math.round(bufferProgress)}s ahead · Playback starts when ready.
+                    {tr('Buffer', 'Buffered')}: {Math.round(bufferProgress)}s {tr('adelante', 'ahead')} · {tr('La reproduccion inicia cuando este listo.', 'Playback starts when ready.')}
                   </div>
                 </div>
               </div>
             ) : null}
 
             <div className="absolute left-4 bottom-4 glass rounded-2xl px-4 py-3">
-              <div className="text-xs text-white/60">Playback</div>
-              <div className="mono text-sm font-bold">{bufferStatus === 'ready' ? `Fixed slow speed · ~${Math.round(bufferProgress)}s buffered` : 'Buffering…'}</div>
+              <div className="text-xs text-white/60">{tr('Reproduccion', 'Playback')}</div>
+              <div className="mono text-sm font-bold">{bufferStatus === 'ready' ? `${tr('Velocidad fija + interpolacion', 'Fixed speed + interpolation')} · ~${Math.round(bufferProgress)}s ${tr('en buffer', 'buffered')}` : tr('Bufferizando…', 'Buffering…')}</div>
             </div>
 
             <div className="absolute right-4 bottom-4 glass rounded-2xl px-4 py-3">
               <div className="text-xs text-white/60">Perf</div>
-              <div className="mono text-xs mt-1">Mode: buffered points · Cap: {Math.min(50000, maxObjects)}</div>
+              <div className="mono text-xs mt-1">{tr('Modo', 'Mode')}: {tr('puntos en buffer', 'buffered points')} · Cap: {Math.min(50000, maxObjects)}</div>
             </div>
 
             <div className="absolute right-4 top-4 glass rounded-2xl px-4 py-3 max-w-[280px]">
-              <div className="text-xs text-white/60">Legend (type)</div>
+              <div className="text-xs text-white/60">{tr('Leyenda (tipo)', 'Legend (type)')}</div>
               <div className="mt-2 flex flex-col gap-1">
                 {legendItems.slice(0, 8).map((it) => (
                   <div key={it.key} className="flex items-center justify-between gap-3 text-xs">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="inline-block w-3 h-3 rounded" style={{ background: it.color }} />
-                      <span className="truncate">{it.key}</span>
+                      <span className="truncate">{it.label}</span>
                     </div>
                     <span className="mono text-white/70">{it.count}</span>
                   </div>
                 ))}
                 {legendItems.length > 8 ? (
-                  <div className="text-[11px] text-white/50 mt-1">+ {legendItems.length - 8} more… (filter by Class to isolate)</div>
+                  <div className="text-[11px] text-white/50 mt-1">+ {legendItems.length - 8} {tr('mas… (filtra por clase para aislar)', 'more… (filter by Class to isolate)')}</div>
                 ) : null}
               </div>
             </div>
@@ -917,10 +1021,10 @@ function OrbitMonitor3D() {
                 className="absolute z-20 glass rounded-xl px-3 py-2 pointer-events-none"
                 style={{ left: hover.x, top: hover.y }}
               >
-                <div className="text-xs font-bold truncate max-w-[320px]">{hover.sat.name || 'Unknown object'}</div>
+                <div className="text-xs font-bold truncate max-w-[320px]">{hover.sat.name || tr('Objeto desconocido', 'Unknown object')}</div>
                 <div className="text-[11px] text-white/70 mono mt-1">NORAD: {hover.sat.norad || '—'}</div>
-                <div className="text-[11px] text-white/70 mt-1">Type: <span className="mono">{satToFourClass(hover.sat)}</span></div>
-                <div className="text-[11px] text-white/70 mt-1">Launch: <span className="mono">{hover.sat.launchDate || 'Unknown'}</span></div>
+                <div className="text-[11px] text-white/70 mt-1">{tr('Tipo', 'Type')}: <span className="mono">{classLabelMap[satToFourClass(hover.sat)] || satToFourClass(hover.sat)}</span></div>
+                <div className="text-[11px] text-white/70 mt-1">{tr('Lanzamiento', 'Launch')}: <span className="mono">{hover.sat.launchDate || tr('Desconocido', 'Unknown')}</span></div>
               </div>
             ) : null}
           </>

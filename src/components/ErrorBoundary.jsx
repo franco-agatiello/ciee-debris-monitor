@@ -1,6 +1,12 @@
 import React from 'react'
+import { useI18n } from '../i18n/I18nProvider.jsx'
 
-export default class ErrorBoundary extends React.Component {
+function ErrorBoundaryView(props) {
+  const { tr } = useI18n()
+  return <ErrorBoundaryInner {...props} tr={tr} />
+}
+
+class ErrorBoundaryInner extends React.Component {
   constructor(props) {
     super(props)
     this.state = { hasError: false, error: null }
@@ -23,8 +29,8 @@ export default class ErrorBoundary extends React.Component {
   render() {
     if (!this.state.hasError) return this.props.children
 
-    const title = this.props.title || 'Something went wrong'
-    const hint = this.props.hint || 'Check the dev server terminal and browser console for details.'
+    const title = this.props.title || this.props.tr('Algo salio mal', 'Something went wrong')
+    const hint = this.props.hint || this.props.tr('Revisa la terminal del servidor dev y la consola del navegador para mas detalle.', 'Check the dev server terminal and browser console for details.')
 
     return (
       <div className="p-5">
@@ -40,14 +46,14 @@ export default class ErrorBoundary extends React.Component {
               onClick={() => this.setState({ hasError: false, error: null })}
               className="px-3 py-2 rounded-xl border text-sm font-bold transition bg-white/10 border-white/20 hover:bg-white/15"
             >
-              Try again
+              {this.props.tr('Reintentar', 'Try again')}
             </button>
             <button
               type="button"
               onClick={() => window.location.reload()}
               className="px-3 py-2 rounded-xl border text-sm font-bold transition bg-white/5 border-white/10 hover:bg-white/10"
             >
-              Reload
+              {this.props.tr('Recargar', 'Reload')}
             </button>
           </div>
         </div>
@@ -55,3 +61,5 @@ export default class ErrorBoundary extends React.Component {
     )
   }
 }
+
+export default ErrorBoundaryView

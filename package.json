@@ -7,7 +7,8 @@
     "dev": "vite",
     "precompute:analytics": "node scripts/precompute-analytics.mjs",
     "build": "npm run precompute:analytics && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "publish:github": "node scripts/publish-github.mjs"
   },
   "dependencies": {
     "framer-motion": "^12.31.0",

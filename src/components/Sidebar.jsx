@@ -1,23 +1,25 @@
 import { NavLink } from 'react-router-dom'
 import { Activity, Globe, LayoutGrid, Map, ShieldAlert } from 'lucide-react'
 import { publicUrl } from '../utils/publicUrl'
-
-const links = [
-  { to: '/', label: 'Mission Hub', hint: 'Landing', Icon: LayoutGrid },
-  { to: '/dashboard/analytics', label: 'Analytics', hint: 'Global trends', Icon: Activity },
-  { to: '/dashboard/map', label: 'Reentry Map', hint: '2D map + 3D orbit', Icon: Map },
-  { to: '/dashboard/orbit', label: 'Orbit Monitor', hint: '3D globe', Icon: Globe },
-  { to: '/dashboard/risk', label: 'Risk', hint: 'Coming soon', Icon: ShieldAlert },
-]
+import { useI18n } from '../i18n/I18nProvider.jsx'
 
 export default function Sidebar() {
+  const { tr } = useI18n()
+  const links = [
+    { to: '/', label: tr('Centro de mision', 'Mission Hub'), hint: tr('Inicio', 'Landing'), Icon: LayoutGrid },
+    { to: '/dashboard/analytics', label: tr('Analitica', 'Analytics'), hint: tr('Tendencias globales', 'Global trends'), Icon: Activity },
+    { to: '/dashboard/map', label: tr('Mapa de reingresos', 'Reentry Map'), hint: tr('Mapa 2D + orbita 3D', '2D map + 3D orbit'), Icon: Map },
+    { to: '/dashboard/orbit', label: tr('Monitor orbital', 'Orbit Monitor'), hint: tr('Globo 3D', '3D globe'), Icon: Globe },
+    { to: '/dashboard/risk', label: tr('Riesgo', 'Risk'), hint: tr('Proximamente', 'Coming soon'), Icon: ShieldAlert },
+  ]
+
   return (
     <aside className="glass h-full p-5 flex flex-col gap-5">
       <div>
         <div className="flex items-center gap-3">
           <img src={publicUrl('/img/logo-ciee.png')} alt="CIEE" className="h-10 w-auto" />
           <div>
-            <div className="text-lg font-extrabold tracking-tight">CIEE Space Watch Suite</div>
+            <div className="text-lg font-extrabold tracking-tight">{tr('Suite CIEE de Vigilancia Espacial', 'CIEE Space Watch Suite')}</div>
             <div className="text-xs text-white/60 mono">2026-02-03 · local</div>
           </div>
         </div>
@@ -62,7 +64,7 @@ export default function Sidebar() {
       </nav>
 
       <div className="mt-auto text-xs text-white/55 leading-relaxed">
-        Data from <span className="mono">/public/data</span>. Run via dev server (not file://).
+        {tr('Datos desde', 'Data from')} <span className="mono">/public/data</span>. {tr('Ejecutar con servidor dev (no file://).', 'Run via dev server (not file://).')}
       </div>
     </aside>
   )

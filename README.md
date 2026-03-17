@@ -5,6 +5,8 @@ Dashboard web para visualización de desechos espaciales:
 - Globo 3D (Three / react-globe.gl)
 - Analíticas (Recharts)
 
+https://franco-agatiello.github.io/ciee-debris-monitor/
+
 ## Requisitos
 - Node.js 18+ (recomendado 20+)
 - npm
@@ -46,8 +48,10 @@ $env:GITHUB_TOKEN = "<PAT con permiso repo>"
 ```
 3) Ejecutá:
 ```bash
-node scripts/publish-github.mjs
+npm run publish:github
 ```
+
+El script de publicación regenera automáticamente `public/data/analytics.precomputed.json` antes de commitear/pushear, así que al subir nuevos CSV la app ya queda optimizada sin recalcular en el navegador.
 
 ## GitHub Pages
 

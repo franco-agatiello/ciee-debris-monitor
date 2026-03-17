@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { publicUrl } from '../utils/publicUrl'
+import { useI18n } from '../i18n/I18nProvider.jsx'
 
 function glowStyle(rgba) {
   return {
@@ -11,43 +12,44 @@ function glowStyle(rgba) {
 
 export default function LandingPage() {
   const navigate = useNavigate()
+  const { tr } = useI18n()
 
   const cards = useMemo(
     () => [
       {
         key: 'analytics',
-        title: 'Analytics',
-        subtitle: 'Global insights & trends',
+        title: tr('Analitica', 'Analytics'),
+        subtitle: tr('Tendencias e insights globales', 'Global insights & trends'),
         to: '/dashboard/analytics',
         border: 'border-purple-500/40',
         glow: glowStyle('rgba(168,85,247,0.35)'),
       },
       {
         key: 'map',
-        title: 'Reentry Map',
-        subtitle: 'High-fidelity reentry events',
+        title: tr('Mapa de reingresos', 'Reentry Map'),
+        subtitle: tr('Eventos de reingreso de alta fidelidad', 'High-fidelity reentry events'),
         to: '/dashboard/map',
         border: 'border-blue-500/40',
         glow: glowStyle('rgba(59,130,246,0.35)'),
       },
       {
         key: 'orbit',
-        title: 'Orbit Monitor',
-        subtitle: '3D globe · catalog watch',
+        title: tr('Monitor orbital', 'Orbit Monitor'),
+        subtitle: tr('Globo 3D · vigilancia de catalogo', '3D globe · catalog watch'),
         to: '/dashboard/orbit',
         border: 'border-emerald-500/40',
         glow: glowStyle('rgba(16,185,129,0.35)'),
       },
       {
         key: 'risk',
-        title: 'Risk',
-        subtitle: 'Conjunction & collision risk',
+        title: tr('Riesgo', 'Risk'),
+        subtitle: tr('Riesgo de conjuncion y colision', 'Conjunction & collision risk'),
         to: '/dashboard/risk',
         border: 'border-red-500/40',
         glow: glowStyle('rgba(239,68,68,0.35)'),
       },
     ],
-    []
+    [tr]
   )
 
   return (
@@ -64,9 +66,9 @@ export default function LandingPage() {
           <div className="flex flex-col items-center text-center">
             <img src={publicUrl('/img/logo-ciee.png')} alt="CIEE" className="h-32 w-auto" />
             <div className="mt-6 text-3xl md:text-4xl font-extrabold tracking-tight text-white">
-              Space Situational Awareness Suite
+              {tr('Suite de conciencia situacional espacial', 'Space Situational Awareness Suite')}
             </div>
-            <div className="mt-3 text-sm text-gray-200/80 mono tracking-widest uppercase">Select a mission</div>
+            <div className="mt-3 text-sm text-gray-200/80 mono tracking-widest uppercase">{tr('Selecciona una mision', 'Select a mission')}</div>
           </div>
 
           <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -80,16 +82,16 @@ export default function LandingPage() {
                 className={`text-left rounded-2xl p-6 bg-black/40 backdrop-blur-xl border border-white/5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10)] ${c.border} transition will-change-transform`}
                 style={c.glow}
               >
-                <div className="text-xs uppercase tracking-[0.24em] text-gray-200/70 mono">Mission</div>
+                <div className="text-xs uppercase tracking-[0.24em] text-gray-200/70 mono">{tr('Mision', 'Mission')}</div>
                 <div className="mt-2 text-2xl font-extrabold tracking-tight text-white">{c.title}</div>
                 <div className="mt-2 text-sm text-gray-200/80">{c.subtitle}</div>
-                <div className="mt-5 text-xs text-gray-200/70 mono">ENTER →</div>
+                <div className="mt-5 text-xs text-gray-200/70 mono">{tr('ENTRAR', 'ENTER')} →</div>
               </motion.button>
             ))}
           </div>
 
           <div className="mt-10 text-center text-xs text-gray-200/60">
-            <span className="mono">CIEE</span> · Deep space interface prototype
+            <span className="mono">CIEE</span> · {tr('Prototipo de interfaz de espacio profundo', 'Deep space interface prototype')}
           </div>
         </div>
       </div>

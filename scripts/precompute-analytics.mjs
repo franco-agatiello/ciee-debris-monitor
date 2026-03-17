@@ -78,6 +78,150 @@ function buildYearSeries(launchByYear, decayByYear) {
   })
 }
 
+function orbitDaysFromRow(r) {
+  const raw = toNumber(r.dias_en_orbita)
+  if (Number.isFinite(raw) && raw >= 0) return raw
+
+  const launch = r.LAUNCH_DATE ? new Date(r.LAUNCH_DATE) : null
+  const decay = r.DECAY_DATE ? new Date(r.DECAY_DATE) : null
+  if (!launch || !decay || Number.isNaN(launch.valueOf()) || Number.isNaN(decay.valueOf())) return NaN
+
+  const days = (decay - launch) / (1000 * 60 * 60 * 24)
+  return Number.isFinite(days) && days >= 0 ? days : NaN
+}
+
+function buildReentryTrend(decayByYear) {
+  const years = Array.from(decayByYear.keys()).sort((a, b) => a - b)
+  return years.map((year, idx) => {
+    const count = decayByYear.get(year) || 0
+    const from = Math.max(0, idx - 4)
+    const window = years.slice(from, idx + 1)
+    const sum = window.reduce((acc, y) => acc + (decayByYear.get(y) || 0), 0)
+    const ma5 = window.length ? sum / window.length : 0
+    return { year, count, ma5: Number(ma5.toFixed(2)) }
+  })
+}
+
+function buildLifetimeByType(lifeStats) {
+  const order = ['PAYLOAD', 'ROCKET BODY', 'DEBRIS', 'UNKNOWN']
+  const labels = {
+    PAYLOAD: 'Payload',
+    'ROCKET BODY': 'Rocket Body',
+    DEBRIS: 'Debris',
+    UNKNOWN: 'Unknown',
+  }
+
+  return order
+    .map((key) => {
+      const stats = lifeStats[key] || { totalDays: 0, count: 0 }
+      const avgDays = stats.count ? stats.totalDays / stats.count : 0
+      return {
+        key,
+        name: labels[key],
+        count: stats.count,
+        avgYears: Number((avgDays / 365.25).toFixed(2)),
+      }
+    })
+    .filter((d) => d.count > 0)
+}
+
+function buildFragmentationIndex(polluters) {
+  return polluters
+    .filter((d) => Number(d?.total || 0) > 0)
+    .map((d) => {
+      const total = Number(d.total || 0)
+      const debris = Number(d.debris || 0)
+      return {
+        country: d.country,
+        total,
+        debris,
+        fragPct: Number(((debris / total) * 100).toFixed(1)),
+      }
+    })
+    .sort((a, b) => b.fragPct - a.fragPct)
+    .slice(0, 12)
+}
+
+function quantile(sortedValues, q) {
+  if (!Array.isArray(sortedValues) || sortedValues.length === 0) return 0
+  const pos = (sortedValues.length - 1) * q
+  const base = Math.floor(pos)
+  const rest = pos - base
+  const a = sortedValues[base]
+  const b = sortedValues[base + 1]
+  if (b == null) return a
+  return a + (b - a) * rest
+}
+
+function buildLifetimeStatsTable(lifeSamples) {
+  const order = ['PAYLOAD', 'ROCKET BODY', 'DEBRIS', 'UNKNOWN']
+  const labels = {
+    PAYLOAD: 'Payload',
+    'ROCKET BODY': 'Rocket Body',
+    DEBRIS: 'Debris',
+    UNKNOWN: 'Unknown',
+  }
+
+  return order
+    .map((key) => {
+      const arr = Array.isArray(lifeSamples[key]) ? lifeSamples[key].filter((n) => Number.isFinite(n) && n >= 0) : []
+      if (!arr.length) return null
+      const sorted = arr.slice().sort((a, b) => a - b)
+      const avgDays = sorted.reduce((acc, v) => acc + v, 0) / sorted.length
+      return {
+        key,
+        type: labels[key],
+        count: sorted.length,
+        avgYears: Number((avgDays / 365.25).toFixed(2)),
+        medianYears: Number((quantile(sorted, 0.5) / 365.25).toFixed(2)),
+        p90Years: Number((quantile(sorted, 0.9) / 365.25).toFixed(2)),
+        minYears: Number((sorted[0] / 365.25).toFixed(2)),
+        maxYears: Number((sorted[sorted.length - 1] / 365.25).toFixed(2)),
+      }
+    })
+    .filter(Boolean)
+}
+
+function cohortKeyFromYear(year) {
+  if (!Number.isFinite(year)) return null
+  const decade = Math.floor(year / 10) * 10
+  return `${decade}s`
+}
+
+function buildCohortTable(cohortMap) {
+  return Array.from(cohortMap.entries())
+    .map(([cohort, v]) => {
+      const reentryRate = v.launched > 0 ? (v.reentered / v.launched) * 100 : 0
+      const avgYearsToReentry = v.reentered > 0 ? v.totalDaysToReentry / v.reentered / 365.25 : 0
+      return {
+        cohort,
+        launched: v.launched,
+        reentered: v.reentered,
+        reentryRate: Number(reentryRate.toFixed(1)),
+        avgYearsToReentry: Number(avgYearsToReentry.toFixed(2)),
+      }
+    })
+    .sort((a, b) => Number(a.cohort.slice(0, 4)) - Number(b.cohort.slice(0, 4)))
+}
+
+function buildCountryFootprintTable(countryStats) {
+  return Array.from(countryStats.values())
+    .map((v) => {
+      const total = v.total || 0
+      return {
+        country: v.country,
+        total,
+        debrisPct: total > 0 ? Number(((v.debris / total) * 100).toFixed(1)) : 0,
+        payloadPct: total > 0 ? Number(((v.payload / total) * 100).toFixed(1)) : 0,
+        massTotal: Number(v.massTotal || 0),
+        reentered: Number(v.reentered || 0),
+      }
+    })
+    .filter((d) => d.total > 0)
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 15)
+}
+
 function readFileUtf8(p) {
   return fs.readFileSync(p, 'utf8')
 }
@@ -125,6 +269,30 @@ async function main() {
 
   const regimesCounts = { LEO: 0, MEO: 0, GEO: 0, UNKNOWN: 0 }
   const activeCounts = { PAYLOAD: 0, 'ROCKET BODY': 0, DEBRIS: 0, UNKNOWN: 0 }
+  const lifeStats = {
+    PAYLOAD: { totalDays: 0, count: 0 },
+    'ROCKET BODY': { totalDays: 0, count: 0 },
+    DEBRIS: { totalDays: 0, count: 0 },
+    UNKNOWN: { totalDays: 0, count: 0 },
+  }
+  const lifeSamples = { PAYLOAD: [], 'ROCKET BODY': [], DEBRIS: [], UNKNOWN: [] }
+  const countryStats = new Map()
+  const cohortMap = new Map()
+
+  const ensureCountry = (country) => {
+    const key = String(country || '').trim() || '??'
+    if (!countryStats.has(key)) {
+      countryStats.set(key, {
+        country: key,
+        total: 0,
+        payload: 0,
+        debris: 0,
+        massTotal: 0,
+        reentered: 0,
+      })
+    }
+    return countryStats.get(key)
+  }
 
   let catalogCount = 0
   let activeCount = 0
@@ -155,6 +323,17 @@ async function main() {
     else if (t === 'ROCKET BODY') obj.rocketBody += 1
     else if (t === 'DEBRIS') obj.debris += 1
 
+    const c = ensureCountry(country)
+    c.total += 1
+    if (t === 'PAYLOAD') c.payload += 1
+    if (t === 'DEBRIS') c.debris += 1
+
+    const cohort = cohortKeyFromYear(y)
+    if (cohort) {
+      if (!cohortMap.has(cohort)) cohortMap.set(cohort, { launched: 0, reentered: 0, totalDaysToReentry: 0 })
+      cohortMap.get(cohort).launched += 1
+    }
+
     const period = toNumber(r.PERIOD)
     if (Number.isFinite(period)) {
       if (period < 128) regimesCounts.LEO += 1
@@ -183,14 +362,39 @@ async function main() {
     activeCounts[t] = (activeCounts[t] || 0) + 1
     const m = toNumber(r.masa_en_orbita)
     if (Number.isFinite(m)) massOrbit += m
+
+    const c = ensureCountry(r.COUNTRY_CODE)
+    if (Number.isFinite(m)) c.massTotal += m
   })
 
   const rowsDecayed = await parseCsvFile(src.decayed, (r) => {
     decayedCount += 1
     const y = yearFromDate(r.DECAY_DATE)
     if (y) decayByYear.set(y, (decayByYear.get(y) || 0) + 1)
+
+    const type = normalizeType(r.OBJECT_TYPE ?? r.clase_objeto)
+    const days = orbitDaysFromRow(r)
+    if (Number.isFinite(days)) {
+      lifeStats[type].totalDays += days
+      lifeStats[type].count += 1
+      lifeSamples[type].push(days)
+    }
+
+    const c = ensureCountry(r.COUNTRY_CODE)
+    c.reentered += 1
     const m = toNumber(r.masa_en_orbita)
-    if (Number.isFinite(m)) massReentered += m
+    if (Number.isFinite(m)) {
+      massReentered += m
+      c.massTotal += m
+    }
+
+    const cohort = cohortKeyFromYear(yearFromDate(r.LAUNCH_DATE))
+    if (cohort) {
+      if (!cohortMap.has(cohort)) cohortMap.set(cohort, { launched: 0, reentered: 0, totalDaysToReentry: 0 })
+      const cohortRow = cohortMap.get(cohort)
+      cohortRow.reentered += 1
+      if (Number.isFinite(days)) cohortRow.totalDaysToReentry += days
+    }
   })
 
   const rowsImpacts = await parseCsvFile(src.impacts, (r) => {
@@ -204,10 +408,16 @@ async function main() {
   })
 
   const kessler = buildYearSeries(launchByYear, decayByYear)
+  const reentryTrend = buildReentryTrend(decayByYear)
   const topPolluters = Array.from(polluters.values())
     .map((d) => ({ ...d, total: d.payload + d.rocketBody + d.debris }))
     .sort((a, b) => b.total - a.total)
     .slice(0, 12)
+  const lifetimeByType = buildLifetimeByType(lifeStats)
+  const fragmentationIndex = buildFragmentationIndex(topPolluters)
+  const countryFootprint = buildCountryFootprintTable(countryStats)
+  const lifetimeStatsTable = buildLifetimeStatsTable(lifeSamples)
+  const launchCohorts = buildCohortTable(cohortMap)
 
   const composition = [
     { name: 'Payload', key: 'PAYLOAD', value: activeCounts.PAYLOAD || 0, color: COLORS.payload },
@@ -246,9 +456,15 @@ async function main() {
       },
     },
     kessler,
+    reentryTrend,
+    lifetimeByType,
+    fragmentationIndex,
     gabbard: scatter,
     massBudget,
     topPolluters,
+    countryFootprint,
+    lifetimeStatsTable,
+    launchCohorts,
     latBands,
     composition,
     regimes,

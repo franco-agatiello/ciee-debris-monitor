@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import fsp from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
+import { spawn } from 'node:child_process'
 import ignore from 'ignore'
 import git from 'isomorphic-git'
 import http from 'isomorphic-git/http/node'
@@ -137,6 +138,20 @@ async function stageAll() {
   }
 
   return files.length + removed
+}
+
+async function runPrecomputeAnalytics() {
+  await new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, ['scripts/precompute-analytics.mjs'], {
+      cwd: dir,
+      stdio: 'inherit',
+    })
+    child.on('error', reject)
+    child.on('close', (code) => {
+      if (code === 0) resolve()
+      else reject(new Error(`precompute-analytics failed with exit code ${code}`))
+    })
+  })
 }
 
 async function hasStagedChanges() {
@@ -329,6 +344,9 @@ async function main() {
 
   await ensureRepo()
   await ensureRemote(repoUrl)
+
+  console.log('Regenerating analytics precomputed JSON…')
+  await runPrecomputeAnalytics()
 
   const count = await stageAll()
   if (count === 0) {
