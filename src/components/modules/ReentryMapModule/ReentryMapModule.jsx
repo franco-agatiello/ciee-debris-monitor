@@ -201,7 +201,7 @@ function geoToUnitXYZ(latDeg, lngDeg, altR) {
   return [x, y, z]
 }
 
-function computeOrbitLine(globeRadius, tle1, tle2, centerTime, orbitsToPlot = 3) {
+function computeOrbitLine(globeRadius, tle1, tle2, centerTime, orbitsToPlot = 1) {
   const satrec = satellite.twoline2satrec(tle1, tle2)
   if (!satrec) return null
 
@@ -213,35 +213,96 @@ function computeOrbitLine(globeRadius, tle1, tle2, centerTime, orbitsToPlot = 3)
     // ignore
   }
 
-  const minutesToPlot = Math.max(30, periodMin * Math.max(1, Number(orbitsToPlot) || 1))
-  const start = new Date(centerTime.getTime() - minutesToPlot * 60000)
-  const end = centerTime
+  const requestedOrbits = Math.max(1, Number(orbitsToPlot) || 1)
+  const isExtreme = periodMin > 1000 || satrec?.ecco > 0.5
+  const stableOrbits = isExtreme ? 1 : requestedOrbits
+  const minutesToPlot = Math.max(30, periodMin * stableOrbits)
+
+  const referenceTime = centerTime instanceof Date && Number.isFinite(centerTime.getTime()) ? centerTime : new Date()
+  const start = new Date(referenceTime.getTime() - (minutesToPlot * 60000) / 2)
+  const end = new Date(referenceTime.getTime() + (minutesToPlot * 60000) / 2)
+  const gmstRef = satellite.gstime(referenceTime)
   const stepMin = minutesToPlot > 8 * 60 ? 2 : 1
 
-  const pts = []
+  const rawSegments = []
+  let rawSegment = []
+  let maxPhysicalAlt = 0
 
   for (let t = start.getTime(); t <= end.getTime(); t += stepMin * 60000) {
     const time = new Date(t)
-    const gmst = satellite.gstime(time)
     const posVel = satellite.propagate(satrec, time)
     if (!posVel?.position) continue
-    const geo = satellite.eciToGeodetic(posVel.position, gmst)
-    const lat = satellite.degreesLat(geo.latitude)
-    const lon = satellite.degreesLong(geo.longitude)
-    const heightKm = geo.height
-    if (!Number.isFinite(lat) || !Number.isFinite(lon) || !Number.isFinite(heightKm)) continue
 
-    const altR = altitudeKmToVisualRatio(heightKm)
-    const [ux, uy, uz] = geoToUnitXYZ(lat, lon, altR)
-    pts.push(new THREE.Vector3(ux * globeRadius, uy * globeRadius, uz * globeRadius))
+    // Freeze Earth rotation at reference time to render a stable orbital shape.
+    const ecf = satellite.eciToEcf(posVel.position, gmstRef)
+    const rx = Number(ecf?.x)
+    const ry = Number(ecf?.y)
+    const rz = Number(ecf?.z)
+    if (!Number.isFinite(rx) || !Number.isFinite(ry) || !Number.isFinite(rz)) {
+      continue
+    }
+
+    const rKm = Math.hypot(rx, ry, rz)
+    if (!Number.isFinite(rKm) || rKm <= 0) {
+      continue
+    }
+
+    const altKm = rKm - EARTH_RADIUS_KM
+    if (!Number.isFinite(altKm)) continue
+
+    const physicalAlt = Math.max(0, altKm / EARTH_RADIUS_KM)
+    maxPhysicalAlt = Math.max(maxPhysicalAlt, physicalAlt)
+
+    const invR = 1 / rKm
+    rawSegment.push({
+      ux: ry * invR,
+      uy: rz * invR,
+      uz: rx * invR,
+      altKm,
+      physicalAlt,
+    })
   }
 
-  if (pts.length < 2) return null
-  const geometry = new THREE.BufferGeometry().setFromPoints(pts)
+  if (rawSegment.length > 1) rawSegments.push(rawSegment)
+
+  const physicalMaxForDefaultScale = MAX_ALTITUDE_RATIO / ORBIT_ALTITUDE_VISUAL_SCALE
+  const adaptiveScale = maxPhysicalAlt > physicalMaxForDefaultScale
+  const linearScale = adaptiveScale
+    ? MAX_ALTITUDE_RATIO / Math.max(maxPhysicalAlt, 0.01)
+    : ORBIT_ALTITUDE_VISUAL_SCALE
+
+  const mapAltToVisual = (pt) => {
+    const altR = pt.physicalAlt * linearScale
+    if (!Number.isFinite(altR)) return Number.NaN
+    return clamp(altR, 0.001, MAX_ALTITUDE_RATIO)
+  }
+
+  const segments = rawSegments
+    .map((seg) =>
+      seg
+        .map((pt) => {
+          const altR = mapAltToVisual(pt)
+          if (!Number.isFinite(altR)) return null
+          const radius = 1 + altR
+          return new THREE.Vector3(pt.ux * radius * globeRadius, pt.uy * radius * globeRadius, pt.uz * radius * globeRadius)
+        })
+        .filter(Boolean)
+    )
+    .filter((seg) => seg.length > 1)
+
+  if (!segments.length) return null
+
   const material = new THREE.LineBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.92 })
-  const line = new THREE.Line(geometry, material)
-  line.frustumCulled = false
-  return line
+  const group = new THREE.Group()
+
+  for (const seg of segments) {
+    const geometry = new THREE.BufferGeometry().setFromPoints(seg)
+    const line = new THREE.Line(geometry, material)
+    line.frustumCulled = false
+    group.add(line)
+  }
+
+  return group
 }
 
 function GlassCard({ title, subtitle, children, className = '' }) {
@@ -413,7 +474,7 @@ function Orbit3DModal({ open, point, onClose }) {
             <Globe
               key={`${point?.norad || 'x'}-${open ? 'open' : 'closed'}`}
               backgroundColor="#02040a"
-              globeImageUrl={publicUrl('/img/BlackMarble_2016_3km.jpg')}
+              globeImageUrl={publicUrl('/img/earthmap1k.jpg')}
               showAtmosphere
               atmosphereColor="#3d7cff"
               atmosphereAltitude={0.12}
@@ -544,6 +605,7 @@ function ReentryMapModule() {
       const massKg = toNumber(r.masa_en_orbita)
       const constellation = normalizeConstellation(toStringSafe(r.constelacion_calc))
       const launchDate = toStringSafe(r.LAUNCH_DATE)
+      const launchYear = yearFromDateString(launchDate)
       const decayDate = toStringSafe(r.fecha_caida_tip) || toStringSafe(r.DECAY_DATE)
 
       let orbitDays = toNumber(r.dias_en_orbita)
@@ -567,6 +629,7 @@ function ReentryMapModule() {
         date,
         year,
         launchDate,
+        launchYear,
         decayDate,
         orbitDays,
         massKg,
@@ -1050,21 +1113,13 @@ function ReentryMapModule() {
                           <span className="text-white/60">{tr('Pais', 'Country')}:</span> {p.country || '—'}
                         </div>
                         <div>
-                          <span className="text-white/60">{tr('Reingreso', 'Reentry')}:</span> {p.date || '—'}
+                          <span className="text-white/60">{tr('Reingreso', 'Reentry')}:</span> {p.date || '—'} · <span className="text-white/60">{tr('Lanzamiento', 'Launch')}:</span> {p.launchYear ?? '—'}
                         </div>
                         <div>
                           <span className="text-white/60">{tr('Constelacion', 'Constellation')}:</span> {p.constellation || '—'}
                         </div>
                         <div>
                           <span className="text-white/60">{tr('Masa', 'Mass')}:</span> {Number.isFinite(p.massKg) ? `${p.massKg.toFixed(0)} kg` : '—'}
-                        </div>
-                        <div>
-                          <span className="text-white/60">{tr('Delta de tiempo', 'Time Delta')}:</span>{' '}
-                          <span className="mono">
-                            {p.diasDiff == null && p.horasDiff == null
-                              ? '—'
-                              : `${p.diasDiff == null ? '—' : p.diasDiff.toFixed(2)} ${tr('dias', 'days')}, ${p.horasDiff == null ? '—' : p.horasDiff.toFixed(2)} ${tr('horas', 'hours')}`}
-                          </span>
                         </div>
                         {p.fallCountry ? (
                           <div>
