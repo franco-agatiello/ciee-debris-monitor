@@ -78,6 +78,15 @@ function buildYearSeries(launchByYear, decayByYear) {
   })
 }
 
+function buildCompositionDataset(counts) {
+  return [
+    { name: 'Payload', key: 'PAYLOAD', value: counts.PAYLOAD || 0, color: COLORS.payload },
+    { name: 'Rocket Body', key: 'ROCKET BODY', value: counts['ROCKET BODY'] || 0, color: COLORS.rocket },
+    { name: 'Debris', key: 'DEBRIS', value: counts.DEBRIS || 0, color: COLORS.debris },
+    { name: 'Unknown', key: 'UNKNOWN', value: counts.UNKNOWN || 0, color: COLORS.unknown },
+  ]
+}
+
 function orbitDaysFromRow(r) {
   const raw = toNumber(r.dias_en_orbita)
   if (Number.isFinite(raw) && raw >= 0) return raw
@@ -268,7 +277,9 @@ async function main() {
   for (let start = -90; start < 90; start += 10) latCounts.set(start, 0)
 
   const regimesCounts = { LEO: 0, MEO: 0, GEO: 0, UNKNOWN: 0 }
+  const totalCounts = { PAYLOAD: 0, 'ROCKET BODY': 0, DEBRIS: 0, UNKNOWN: 0 }
   const activeCounts = { PAYLOAD: 0, 'ROCKET BODY': 0, DEBRIS: 0, UNKNOWN: 0 }
+  const decayedCounts = { PAYLOAD: 0, 'ROCKET BODY': 0, DEBRIS: 0, UNKNOWN: 0 }
   const lifeStats = {
     PAYLOAD: { totalDays: 0, count: 0 },
     'ROCKET BODY': { totalDays: 0, count: 0 },
@@ -317,6 +328,7 @@ async function main() {
 
     const country = String(r.COUNTRY_CODE || '').trim() || '??'
     const t = normalizeType(r.OBJECT_TYPE ?? r.clase_objeto)
+    totalCounts[t] = (totalCounts[t] || 0) + 1
     if (!polluters.has(country)) polluters.set(country, { country, payload: 0, rocketBody: 0, debris: 0 })
     const obj = polluters.get(country)
     if (t === 'PAYLOAD') obj.payload += 1
@@ -373,6 +385,7 @@ async function main() {
     if (y) decayByYear.set(y, (decayByYear.get(y) || 0) + 1)
 
     const type = normalizeType(r.OBJECT_TYPE ?? r.clase_objeto)
+    decayedCounts[type] = (decayedCounts[type] || 0) + 1
     const days = orbitDaysFromRow(r)
     if (Number.isFinite(days)) {
       lifeStats[type].totalDays += days
@@ -419,12 +432,12 @@ async function main() {
   const lifetimeStatsTable = buildLifetimeStatsTable(lifeSamples)
   const launchCohorts = buildCohortTable(cohortMap)
 
-  const composition = [
-    { name: 'Payload', key: 'PAYLOAD', value: activeCounts.PAYLOAD || 0, color: COLORS.payload },
-    { name: 'Rocket Body', key: 'ROCKET BODY', value: activeCounts['ROCKET BODY'] || 0, color: COLORS.rocket },
-    { name: 'Debris', key: 'DEBRIS', value: activeCounts.DEBRIS || 0, color: COLORS.debris },
-    { name: 'Unknown', key: 'UNKNOWN', value: activeCounts.UNKNOWN || 0, color: COLORS.unknown },
-  ]
+  const compositionScopes = {
+    total: buildCompositionDataset(totalCounts),
+    orbit: buildCompositionDataset(activeCounts),
+    reentered: buildCompositionDataset(decayedCounts),
+  }
+  const composition = compositionScopes.orbit
 
   const regimes = [
     { name: 'LEO (<128m)', value: regimesCounts.LEO, color: '#22c55e' },
@@ -466,6 +479,7 @@ async function main() {
     lifetimeStatsTable,
     launchCohorts,
     latBands,
+    compositionScopes,
     composition,
     regimes,
     kpis,
