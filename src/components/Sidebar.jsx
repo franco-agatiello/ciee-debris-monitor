@@ -1,40 +1,133 @@
+import { useEffect, useRef } from 'react'
 import { NavLink } from 'react-router-dom'
-import { Activity, Globe, LayoutGrid, Map, ShieldAlert } from 'lucide-react'
+import { Activity, Globe, LayoutGrid, Map, PanelLeftClose, PanelLeftOpen, Search, ShieldAlert } from 'lucide-react'
 import { publicUrl } from '../utils/publicUrl'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 
-export default function Sidebar() {
+const CIEE_URL = 'https://www.ciee.unlp.edu.ar/'
+
+export default function Sidebar({ onNavigate, collapsed = false, onToggle, mobile = false }) {
   const { tr } = useI18n()
+  const redirectTimerRef = useRef(null)
+
+  const clearRedirectTimer = () => {
+    if (redirectTimerRef.current) {
+      clearTimeout(redirectTimerRef.current)
+      redirectTimerRef.current = null
+    }
+  }
+
+  const scheduleRedirect = () => {
+    clearRedirectTimer()
+    redirectTimerRef.current = setTimeout(() => {
+      window.location.href = CIEE_URL
+    }, 550)
+  }
+
+  useEffect(
+    () => () => {
+      clearRedirectTimer()
+    },
+    [],
+  )
+
   const links = [
     { to: '/', label: tr('Centro de mision', 'Mission Hub'), hint: tr('Inicio', 'Landing'), Icon: LayoutGrid },
     { to: '/dashboard/analytics', label: tr('Analitica', 'Analytics'), hint: tr('Tendencias globales', 'Global trends'), Icon: Activity },
     { to: '/dashboard/map', label: tr('Mapa de reingresos', 'Reentry Map'), hint: tr('Mapa 2D + orbita 3D', '2D map + 3D orbit'), Icon: Map },
     { to: '/dashboard/orbit', label: tr('Monitor orbital', 'Orbit Monitor'), hint: tr('Globo 3D', '3D globe'), Icon: Globe },
     { to: '/dashboard/risk', label: tr('Riesgo', 'Risk'), hint: tr('Proximamente', 'Coming soon'), Icon: ShieldAlert },
+    { to: '/dashboard/search', label: tr('Buscador', 'Search'), hint: tr('Objetos y debris', 'Objects and debris'), Icon: Search },
   ]
+
+  const handleNavigate = () => onNavigate?.()
+
+  if (collapsed && !mobile) {
+    return (
+      <aside className="glass h-full px-2 py-3 flex flex-col items-center gap-3">
+        <button
+          type="button"
+          onClick={onToggle}
+          className="group relative inline-flex items-center justify-center w-10 h-10 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition"
+          aria-label={tr('Abrir menu lateral', 'Open sidebar menu')}
+          title={tr('Abrir menu lateral', 'Open sidebar menu')}
+        >
+          <img
+            src={publicUrl('/img/icono.png')}
+            alt="CIEE"
+            className="h-7 w-7 object-contain transition-opacity duration-150 group-hover:opacity-0"
+          />
+          <PanelLeftOpen className="absolute h-4 w-4 text-white/90 opacity-0 transition-opacity duration-150 group-hover:opacity-100" />
+        </button>
+
+        <nav className="mt-2 flex flex-col items-center gap-2">
+          {links.map((l) => {
+            const Icon = l.Icon
+            return (
+              <NavLink
+                key={l.to}
+                to={l.to}
+                onClick={handleNavigate}
+                title={l.label}
+                className={({ isActive }) =>
+                  `inline-flex items-center justify-center w-10 h-10 rounded-xl border transition ${
+                    isActive
+                      ? 'bg-white/12 border-white/20 text-white'
+                      : 'bg-transparent border-transparent text-white/70 hover:bg-white/10 hover:border-white/15'
+                  }`
+                }
+              >
+                <Icon className="h-5 w-5" aria-hidden="true" />
+              </NavLink>
+            )
+          })}
+        </nav>
+      </aside>
+    )
+  }
 
   return (
     <aside className="glass h-full p-5 flex flex-col gap-5">
-      <div>
-        <div className="flex items-center gap-3">
-          <img src={publicUrl('/img/logo-ciee.png')} alt="CIEE" className="h-10 w-auto" />
-          <div>
-            <div className="text-lg font-extrabold tracking-tight">{tr('Suite CIEE de Vigilancia Espacial', 'CIEE Space Watch Suite')}</div>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-3 min-w-0">
+          <img
+            src={publicUrl('/img/logo-ciee.png')}
+            alt="CIEE"
+            className="h-8 w-auto object-contain cursor-pointer"
+            onMouseEnter={scheduleRedirect}
+            onMouseLeave={clearRedirectTimer}
+            title={tr('Ir a CIEE', 'Go to CIEE')}
+          />
+          <div className="min-w-0">
+            <div className="text-lg font-extrabold tracking-tight truncate">{tr('Suite CIEE de Vigilancia Espacial', 'CIEE Space Watch Suite')}</div>
             <div className="text-xs text-white/60 mono">2026-02-03 · local</div>
           </div>
         </div>
+
+        {!mobile ? (
+          <button
+            type="button"
+            onClick={onToggle}
+            className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-white/15 bg-white/5 text-white/85 hover:bg-white/10 transition"
+            aria-label={tr('Ocultar menu lateral', 'Hide sidebar menu')}
+            title={tr('Ocultar menu lateral', 'Hide sidebar menu')}
+          >
+            <PanelLeftClose className="h-4 w-4" />
+          </button>
+        ) : null}
       </div>
 
-      <nav className="flex flex-col gap-2">
+      <nav className="flex flex-col gap-1">
         {links.map((l) => (
           <NavLink
             key={l.to}
             to={l.to}
+            onClick={handleNavigate}
             className={({ isActive }) =>
-              `rounded-xl px-3 py-3 border transition ${
+              `rounded-xl px-3 py-2.5 border transition ${
                 isActive
-                  ? 'bg-white/10 border-white/20'
-                  : 'bg-white/0 border-white/10 hover:bg-white/5 hover:border-white/15'
+                  ? 'bg-white/10 border-white/20 text-white'
+                  : 'bg-transparent border-white/10 text-white/90 hover:bg-white/5 hover:border-white/15'
               }`
             }
           >
@@ -45,8 +138,8 @@ export default function Sidebar() {
                   <Icon
                     className={
                       isActive
-                        ? 'h-5 w-5 text-cyan-200 drop-shadow-[0_0_12px_rgba(34,211,238,0.55)]'
-                        : 'h-5 w-5 text-gray-400/80'
+                        ? 'h-5 w-5 text-cyan-200 drop-shadow-[0_0_12px_rgba(34,211,238,0.45)]'
+                        : 'h-5 w-5 text-white/65'
                     }
                     aria-hidden="true"
                   />

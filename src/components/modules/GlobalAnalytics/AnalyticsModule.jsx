@@ -410,10 +410,20 @@ function DataTable({ columns, rows, searchPlaceholder, initialSort }) {
           <tr>
             {columns.map((col) => (
               <th key={col.key} className="px-3 py-2 text-left font-semibold text-white/75 whitespace-nowrap">
-                <button type="button" onClick={() => toggleSort(col.key)} className="hover:text-white transition-colors">
-                  {col.label}
-                  {arrowFor(col.key)}
-                </button>
+                <div className="inline-flex items-center gap-1">
+                  <button type="button" onClick={() => toggleSort(col.key)} className="hover:text-white transition-colors">
+                    {col.label}
+                    {arrowFor(col.key)}
+                  </button>
+                  {col.headerTooltip ? (
+                    <div className="relative group">
+                      <span className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-white/30 text-[10px] font-bold text-white/70 cursor-help">?</span>
+                      <div className="pointer-events-none absolute right-0 top-full mt-2 hidden group-hover:block z-[80] w-64 max-w-[80vw] bg-black/90 border border-cyan-300/30 rounded-md px-2 py-1.5 text-[10px] leading-relaxed text-cyan-100 normal-case tracking-normal whitespace-normal break-words">
+                        {col.headerTooltip}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
               </th>
             ))}
           </tr>
@@ -963,7 +973,14 @@ function AnalyticsModule() {
       { key: 'count', label: tr('Muestras válidas', 'Valid samples') },
       { key: 'avgYears', label: tr('Promedio (años)', 'Average (years)') },
       { key: 'medianYears', label: tr('Mediana (años)', 'Median (years)') },
-      { key: 'p90Years', label: tr('P90 (años)', 'P90 (years)') },
+      {
+        key: 'p90Years',
+        label: tr('P90 (años)', 'P90 (years)'),
+        headerTooltip: tr(
+          'P90 es el percentil 90: el 90% de los objetos reingresa en ese tiempo o menos; el 10% tarda más.',
+          'P90 is the 90th percentile: 90% of objects reenter in that time or less; 10% take longer.',
+        ),
+      },
       { key: 'minYears', label: tr('Min (años)', 'Min (years)') },
       { key: 'maxYears', label: tr('Max (años)', 'Max (years)') },
     ],

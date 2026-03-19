@@ -11,6 +11,7 @@ const GlobalAnalytics = lazy(() => import('./components/modules/GlobalAnalytics/
 const ReentryMapModule = lazy(() => import('./components/modules/ReentryMapModule/ReentryMapModule.jsx'))
 const OrbitMonitor3D = lazy(() => import('./components/modules/OrbitMonitor3D/OrbitMonitor3D.jsx'))
 const RiskCollision = lazy(() => import('./components/modules/RiskCollision/RiskCollision.jsx'))
+const ObjectSearchModule = lazy(() => import('./components/modules/ObjectSearch/ObjectSearchModule.jsx'))
 
 function AppRoutes() {
   const location = useLocation()
@@ -26,6 +27,7 @@ function AppRoutes() {
             <Route path="/dashboard" element={<DashboardLayout />}>
               <Route index element={<Navigate to="analytics" replace />} />
               <Route path="analytics" element={<GlobalAnalytics />} />
+              <Route path="search" element={<ObjectSearchModule />} />
               <Route path="map" element={<ReentryMapModule />} />
               <Route path="orbit" element={<OrbitMonitor3D />} />
               <Route path="risk" element={<RiskCollision />} />
@@ -33,6 +35,7 @@ function AppRoutes() {
 
             {/* Back-compat redirects */}
             <Route path="/analytics" element={<Navigate to="/dashboard/analytics" replace />} />
+            <Route path="/search" element={<Navigate to="/dashboard/search" replace />} />
             <Route path="/reentry-map" element={<Navigate to="/dashboard/map" replace />} />
             <Route path="/orbit-monitor" element={<Navigate to="/dashboard/orbit" replace />} />
             <Route path="/risk" element={<Navigate to="/dashboard/risk" replace />} />
