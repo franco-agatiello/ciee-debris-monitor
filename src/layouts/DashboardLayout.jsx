@@ -60,7 +60,7 @@ export default function DashboardLayout() {
 
       <div className="h-[calc(100vh-2rem)] md:h-[calc(100vh-3rem)] flex gap-4 md:gap-6">
         <div
-          className={`hidden md:flex md:flex-col transition-[width] duration-300 ease-out ${sidebarOpen ? 'w-[320px]' : 'w-14'}`}
+          className={`hidden md:flex md:flex-col transition-[width] duration-300 ease-out ${sidebarOpen ? 'w-[270px]' : 'w-14'}`}
         >
           <Sidebar collapsed={!sidebarOpen} onToggle={() => setSidebarOpen((v) => !v)} />
         </div>

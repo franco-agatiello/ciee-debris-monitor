@@ -18,7 +18,6 @@ function AppRoutes() {
 
   return (
     <>
-      <LanguageToggle />
       <Suspense fallback={<LoadingScreen />}>
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>

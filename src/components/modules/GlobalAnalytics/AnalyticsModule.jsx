@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
+import { COUNTRY_NAMES } from '../../../utils/countryNames.js'
 import Papa from 'papaparse'
 import { publicUrl } from '../../../utils/publicUrl'
 import {
@@ -62,10 +63,24 @@ function DeferredViz({ ready, children }) {
 }
 
 function CustomTooltip({ active, payload, label }) {
-  if (!active || !payload?.length) return null
+  if (!active || !payload?.length) return null;
+  // Detectar si hay campo country
+  let countryCode = null;
+  if (payload[0]?.payload?.country) countryCode = payload[0].payload.country;
+  const countryName = countryCode ? COUNTRY_NAMES[countryCode] : null;
   return (
     <div className="bg-black/70 backdrop-blur-md border border-white/10 rounded-lg px-3 py-2">
-      {label != null ? <div className="text-xs font-bold text-white/90 mb-1">{label}</div> : null}
+      {label != null ? (
+        <div className="text-xs font-bold text-white/90 mb-1">
+          {countryName ? (
+            <>
+              {countryCode} <span className="text-white/60">— {countryName}</span>
+            </>
+          ) : (
+            label
+          )}
+        </div>
+      ) : null}
       <div className="space-y-1">
         {payload
           .filter((p) => p && p.value != null)
@@ -80,7 +95,7 @@ function CustomTooltip({ active, payload, label }) {
           ))}
       </div>
     </div>
-  )
+  );
 }
 
 function yearFromDate(value) {
@@ -611,6 +626,9 @@ function AnalyticsModule() {
   const [compositionMode, setCompositionMode] = useState('orbit')
   const [regimes, setRegimes] = useState([])
   const [reentryTrend, setReentryTrend] = useState([])
+  const [reentryTrendByType, setReentryTrendByType] = useState({ DEBRIS: [], 'ROCKET BODY': [], PAYLOAD: [], UNKNOWN: [] })
+  // 'ALL' es la opción por defecto
+  const [reentryType, setReentryType] = useState('ALL')
   const [lifetimeByType, setLifetimeByType] = useState([])
   const [fragmentationIndex, setFragmentationIndex] = useState([])
   const [countryFootprint, setCountryFootprint] = useState([])
@@ -660,7 +678,58 @@ function AnalyticsModule() {
         setCompositionScopes({ total: [], orbit, reentered: [] })
       }
       setRegimes(Array.isArray(payload?.regimes) ? payload.regimes : [])
-      setReentryTrend(Array.isArray(payload?.reentryTrend) ? payload.reentryTrend : buildReentryTrendFromKesslerSeries(preKessler))
+      // --- ADAPTACIÓN NUEVO FORMATO reentryTrend ---
+      // Si payload.reentryTrend es un objeto con claves tipo (PAYLOAD, DEBRIS, etc.), usarlo para setReentryTrendByType
+      if (
+        payload?.reentryTrend &&
+        typeof payload.reentryTrend === 'object' &&
+        !Array.isArray(payload.reentryTrend) &&
+        (
+          payload.reentryTrend.PAYLOAD ||
+          payload.reentryTrend.DEBRIS ||
+          payload.reentryTrend['ROCKET BODY'] ||
+          payload.reentryTrend.UNKNOWN
+        )
+      ) {
+        setReentryTrendByType({
+          PAYLOAD: payload.reentryTrend.PAYLOAD || [],
+          DEBRIS: payload.reentryTrend.DEBRIS || [],
+          'ROCKET BODY': payload.reentryTrend['ROCKET BODY'] || [],
+          UNKNOWN: payload.reentryTrend.UNKNOWN || [],
+        })
+        // Para la serie general, usar reentryTrend.total si existe, si no, usar la suma de todos
+        if (Array.isArray(payload.reentryTrend.total)) {
+          setReentryTrend(payload.reentryTrend.total)
+        } else {
+          // Sumar todos los tipos por año
+          const yearMap = new Map()
+          const types = ['PAYLOAD', 'DEBRIS', 'ROCKET BODY', 'UNKNOWN']
+          types.forEach(type => {
+            (payload.reentryTrend[type] || []).forEach(row => {
+              if (!yearMap.has(row.year)) yearMap.set(row.year, { year: row.year, count: 0, ma5: 0 })
+              yearMap.get(row.year).count += Number(row.count || 0)
+              yearMap.get(row.year).ma5 += Number(row.ma5 || 0)
+            })
+          })
+          // Promediar ma5 por cantidad de tipos presentes ese año
+          yearMap.forEach((v, y) => {
+            let present = 0
+            types.forEach(type => {
+              if ((payload.reentryTrend[type] || []).find(row => row.year === y)) present++
+            })
+            if (present > 0) v.ma5 = Number((v.ma5 / present).toFixed(2))
+          })
+          setReentryTrend(Array.from(yearMap.values()).sort((a, b) => a.year - b.year))
+        }
+      } else {
+        setReentryTrend(Array.isArray(payload?.reentryTrend) ? payload.reentryTrend : buildReentryTrendFromKesslerSeries(preKessler))
+        // Construir tendencia por tipo si existe payload.reentryTrendByType
+        if (payload?.reentryTrendByType) {
+          setReentryTrendByType(payload.reentryTrendByType)
+        } else if (payload?.reentryTrendByType == null && payload?.reentryTrendByObjectType) {
+          setReentryTrendByType(payload.reentryTrendByObjectType)
+        }
+      }
       setLifetimeByType(Array.isArray(payload?.lifetimeByType) ? payload.lifetimeByType : [])
       setCountryFootprint(preCountryFootprint)
       setFragmentationIndex(
@@ -957,7 +1026,13 @@ function AnalyticsModule() {
 
   const countryFootprintColumns = useMemo(
     () => [
-      { key: 'country', label: tr('Pais', 'Country') },
+      {
+        key: 'country',
+        label: tr('Pais', 'Country'),
+        format: (v) => (
+          <span title={COUNTRY_NAMES[v] || v}>{v}</span>
+        ),
+      },
       { key: 'total', label: tr('Objetos', 'Objects') },
       { key: 'debrisPct', label: tr('% Basura', '% Debris'), format: (v) => formatPct(Number(v)) },
       { key: 'payloadPct', label: tr('% Carga util', '% Payload'), format: (v) => formatPct(Number(v)) },
@@ -1010,6 +1085,43 @@ function AnalyticsModule() {
       impactsRows,
     }
   }, [compositionScopes, lifetimeStatsTable, latBands])
+
+  // Fallback: si no hay datos por tipo, filtrar de reentryTrend si tiene campo type
+  const trendData = useMemo(() => {
+    if (reentryType === 'ALL') {
+      // Si existe la serie total precomputada, usarla directamente
+      if (reentryTrend && Array.isArray(reentryTrend) && reentryTrend.length && reentryTrend[0].ma5 !== undefined) {
+        return reentryTrend
+      }
+      // Si hay datos por tipo, sumarlos año a año (fallback)
+      const types = ['DEBRIS', 'ROCKET BODY', 'PAYLOAD', 'UNKNOWN']
+      if (reentryTrendByType && Object.values(reentryTrendByType).some(arr => arr && arr.length)) {
+        const yearMap = new Map()
+        types.forEach(type => {
+          (reentryTrendByType[type] || []).forEach(row => {
+            if (!yearMap.has(row.year)) yearMap.set(row.year, { year: row.year, count: 0, ma5: 0 })
+            yearMap.get(row.year).count += Number(row.count || 0)
+            yearMap.get(row.year).ma5 += Number(row.ma5 || 0)
+          })
+        })
+        yearMap.forEach((v, y) => {
+          let present = 0
+          types.forEach(type => {
+            if ((reentryTrendByType[type] || []).find(row => row.year === y)) present++
+          })
+          if (present > 0) v.ma5 = Number((v.ma5 / present).toFixed(2))
+        })
+        return Array.from(yearMap.values()).sort((a, b) => a.year - b.year)
+      }
+      // Si no hay datos por tipo, usar reentryTrend completo
+      return reentryTrend
+    }
+    if (reentryTrendByType[reentryType]?.length) return reentryTrendByType[reentryType]
+    if (reentryTrend.length && reentryTrend[0]?.type) {
+      return reentryTrend.filter((d) => d.type === reentryType)
+    }
+    return reentryTrend
+  }, [reentryTrend, reentryTrendByType, reentryType])
 
   return (
     <div className="p-5">
@@ -1098,7 +1210,32 @@ function AnalyticsModule() {
                 <BarChart data={topPolluters} layout="vertical" margin={{ top: 10, right: 10, left: 20, bottom: 0 }}>
                   <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" strokeOpacity={0.6} />
                   <XAxis type="number" tick={{ fill: '#6b7280', fontSize: 11, fontFamily: 'monospace' }} />
-                  <YAxis type="category" dataKey="country" tick={{ fill: '#6b7280', fontSize: 11, fontFamily: 'monospace' }} width={50} />
+                  <YAxis
+                    type="category"
+                    dataKey="country"
+                    tick={{ fill: '#6b7280', fontSize: 11, fontFamily: 'monospace' }}
+                    width={50}
+                    tickFormatter={(v) => v}
+                    tickLine={false}
+                    axisLine={false}
+                    interval={0}
+                    allowDataOverflow={false}
+                    // Custom tick render for tooltip
+                    tick={({ x, y, payload }) => (
+                      <text
+                        x={x}
+                        y={y + 4}
+                        textAnchor="end"
+                        fill="#6b7280"
+                        fontSize={11}
+                        fontFamily="monospace"
+                        title={COUNTRY_NAMES[payload.value] || payload.value}
+                        style={{ cursor: 'help' }}
+                      >
+                        {payload.value}
+                      </text>
+                    )}
+                  />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend wrapperStyle={{ color: '#9ca3af', fontSize: 11 }} />
                   <Bar dataKey="payload" name={tr('Carga util', 'Payload')} stackId="a" fill={COLORS.payload} />
@@ -1157,10 +1294,27 @@ function AnalyticsModule() {
         </GlassCard>
 
         <GlassCard title={tr('Tendencia de reingresos', 'Reentry Trend')} subtitle={tr('Anual y promedio móvil de 5 años', 'Annual and 5-year moving average')} className="md:col-span-2">
+          <div className="mb-2 inline-flex rounded-lg border border-white/10 bg-black/30 p-1 gap-1">
+            {[{ key: 'ALL', label: tr('Todos', 'All') },
+              { key: 'DEBRIS', label: tr('Basura', 'Debris') },
+              { key: 'ROCKET BODY', label: tr('Cuerpo de cohete', 'Rocket Body') },
+              { key: 'PAYLOAD', label: tr('Carga útil', 'Payload') },
+              { key: 'UNKNOWN', label: tr('Desconocido', 'Unknown') }
+            ].map((opt) => (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => setReentryType(opt.key)}
+                className={`px-2 py-1 rounded-md text-[11px] font-semibold transition ${reentryType === opt.key ? 'bg-cyan-400/25 text-cyan-100 border border-cyan-300/40' : 'text-white/70 hover:bg-white/10'}`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
           <div className="h-[260px]">
             <DeferredViz ready={chartsReady}>
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={reentryTrend} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <AreaChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="gradReentry" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor={COLORS.decayed} stopOpacity={0.4} />
@@ -1210,7 +1364,31 @@ function AnalyticsModule() {
                 <BarChart data={fragmentationIndex} layout="vertical" margin={{ top: 10, right: 10, left: 8, bottom: 0 }}>
                   <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" strokeOpacity={0.6} />
                   <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fill: '#6b7280', fontSize: 11, fontFamily: 'monospace' }} />
-                  <YAxis type="category" dataKey="country" width={50} tick={{ fill: '#6b7280', fontSize: 11, fontFamily: 'monospace' }} />
+                  <YAxis
+                    type="category"
+                    dataKey="country"
+                    width={50}
+                    tick={{ fill: '#6b7280', fontSize: 11, fontFamily: 'monospace' }}
+                    tickFormatter={(v) => v}
+                    tickLine={false}
+                    axisLine={false}
+                    interval={0}
+                    allowDataOverflow={false}
+                    tick={({ x, y, payload }) => (
+                      <text
+                        x={x}
+                        y={y + 4}
+                        textAnchor="end"
+                        fill="#6b7280"
+                        fontSize={11}
+                        fontFamily="monospace"
+                        title={COUNTRY_NAMES[payload.value] || payload.value}
+                        style={{ cursor: 'help' }}
+                      >
+                        {payload.value}
+                      </text>
+                    )}
+                  />
                   <Tooltip formatter={(v) => formatPct(Number(v))} />
                   <Bar dataKey="fragPct" name={tr('% Basura', '% Debris')} fill={COLORS.debris} radius={[8, 8, 8, 8]} />
                 </BarChart>

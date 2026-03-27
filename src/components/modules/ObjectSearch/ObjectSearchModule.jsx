@@ -4,6 +4,7 @@ import * as satellite from 'satellite.js'
 import * as THREE from 'three'
 import { Search, Database, Globe as GlobeIcon, Orbit, Maximize2, Minimize2 } from 'lucide-react'
 import { loadCsv, toNumber, toStringSafe } from '../../../utils/csv.js'
+import { COUNTRY_NAMES } from '../../../utils/countryNames.js'
 import { useDeferredRender } from '../../../hooks/useDeferredRender.js'
 import { useI18n } from '../../../i18n/I18nProvider.jsx'
 import { publicUrl } from '../../../utils/publicUrl'
@@ -817,6 +818,7 @@ export default function ObjectSearchModule() {
   const [sortMode, setSortMode] = useState(SORT_MODE_RECENT)
   const [typeFilter, setTypeFilter] = useState('all')
   const [countryFilter, setCountryFilter] = useState('all')
+  const [orbitStatusFilter, setOrbitStatusFilter] = useState('all') // Nuevo filtro
   const [dataValidAt, setDataValidAt] = useState('')
 
   useEffect(() => {
@@ -868,11 +870,19 @@ export default function ObjectSearchModule() {
 
   // Obtener países y tipos únicos para los selects
   const countryOptions = useMemo(() => {
+    // Solo países presentes en los datos cargados
     const set = new Set()
     rows.forEach((r) => {
       if (r.country) set.add(r.country)
     })
-    return Array.from(set).sort()
+    // Filtrar solo los que existen en COUNTRY_NAMES o tienen valor válido
+    return Array.from(set)
+      .filter((code) => code && (COUNTRY_NAMES[code] || code))
+      .sort((a, b) => {
+        const nameA = COUNTRY_NAMES[a] || a
+        const nameB = COUNTRY_NAMES[b] || b
+        return nameA.localeCompare(nameB)
+      })
   }, [rows])
 
   const typeOptions = useMemo(() => {
@@ -896,6 +906,11 @@ export default function ObjectSearchModule() {
     }
     if (countryFilter !== 'all') {
       out = out.filter((r) => r.country === countryFilter)
+    }
+    if (orbitStatusFilter === 'orbit') {
+      out = out.filter((r) => r.sources?.orbit)
+    } else if (orbitStatusFilter === 'reentry') {
+      out = out.filter((r) => r.sources?.reentry)
     }
 
     out.sort((a, b) => {
@@ -923,7 +938,7 @@ export default function ObjectSearchModule() {
     })
 
     return out
-  }, [debouncedQuery, rows, sortMode, typeFilter, countryFilter])
+  }, [debouncedQuery, rows, sortMode, typeFilter, countryFilter, orbitStatusFilter])
 
   const visibleResults = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount])
 
@@ -958,7 +973,7 @@ export default function ObjectSearchModule() {
   }
 
   return (
-    <div className="p-4 h-[calc(100vh-6.8rem)] flex flex-col gap-2.5">
+    <div className="p-4 h-screen min-h-0 flex flex-col gap-2.5">
       <div className="glass rounded-2xl p-4">
         <div className="flex items-center gap-2">
           <Search className="h-4 w-4 text-cyan-200" />
@@ -1009,8 +1024,21 @@ export default function ObjectSearchModule() {
           >
             <option value="all">{tr('Todos', 'All')}</option>
             {countryOptions.map(opt => (
-              <option key={opt} value={opt}>{opt}</option>
+              <option key={opt} value={opt}>{COUNTRY_NAMES[opt] || opt}</option>
             ))}
+          </select>
+
+          {/* Filtro en órbita / reingresado */}
+          <label className="text-white/55" htmlFor="orbitStatusFilter">{tr('Estado', 'Status')}:</label>
+          <select
+            id="orbitStatusFilter"
+            value={orbitStatusFilter}
+            onChange={e => setOrbitStatusFilter(e.target.value)}
+            className="rounded-lg border border-white/15 bg-black/30 px-2 py-1.5 text-white/80 text-xs focus:border-cyan-300/45"
+          >
+            <option value="all">{tr('Todos', 'All')}</option>
+            <option value="orbit">{tr('En órbita', 'In orbit')}</option>
+            <option value="reentry">{tr('Reingresado', 'Reentered')}</option>
           </select>
 
           {/* Filtro de orden */}
@@ -1028,7 +1056,7 @@ export default function ObjectSearchModule() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[310px_1fr] gap-2.5">
+      <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[310px_1fr] gap-2.5 auto-rows-fr">
         <div className="glass rounded-2xl p-3 overflow-auto min-h-0">
           <div className="text-xs text-white/55 px-2 pb-2">
             {tr('Resultados', 'Results')}: <span className="mono">{filtered.length}</span>
@@ -1081,29 +1109,28 @@ export default function ObjectSearchModule() {
           </div>
         </div>
 
-        <div className="glass rounded-2xl p-2.5 overflow-hidden min-h-0">
+        <div className="glass rounded-2xl p-2.5 min-h-0">
           {selected ? (
-            <div className="h-full flex flex-col gap-2">
-              <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-2">
+            <div className="flex flex-col gap-2 min-w-0">
+              <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-2 min-w-0">
                 <div className="min-w-0">
                   <div className="text-lg md:text-xl font-extrabold tracking-tight text-white truncate">{selected.name || tr('Objeto sin nombre', 'Unnamed object')}</div>
                   <div className="mt-1 text-[11px] text-white/65 mono">NORAD: {selected.norad || '—'} · ID: {selected.objectId || '—'}</div>
                 </div>
-                {/* Bloque de datos arriba a la derecha eliminado por pedido del usuario */}
               </div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 min-w-0">
                 {statusBadge(selected.sources.total, 'En catalogo', 'In catalog', tr)}
                 {statusBadge(selected.sources.orbit, 'En orbita', 'In orbit', tr)}
                 {statusBadge(selected.sources.reentry, 'Reingresado', 'Reentered', tr)}
                 {statusBadge(selected.sources.impact, 'Con punto de caida', 'With impact point', tr)}
               </div>
 
-              <div className="grid grid-cols-1 xl:grid-cols-[1.6fr_280px] gap-2 items-start">
-                <div className="space-y-2">
+              <div className="flex flex-col xl:flex-row gap-2 min-w-0">
+                <div className="flex-1 min-w-0 space-y-2">
                   <div className="rounded-xl border border-white/10 bg-black/25 p-2">
                     <div className="text-[11px] text-white/75 mb-1.5">{tr('Fechas', 'Dates')}</div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 min-w-0">
                       <Field label={tr('Lanzamiento', 'Launch')} value={fmtDate(selected.launchDate)} />
                       <Field label={tr('Reingreso', 'Reentry')} value={fmtDate(selected.decayDate)} />
                       <Field label={tr('Epoch', 'Epoch')} value={fmtDate(selected.epoch)} />
@@ -1112,7 +1139,7 @@ export default function ObjectSearchModule() {
 
                   <div className="rounded-xl border border-white/10 bg-black/25 p-2">
                     <div className="flex items-center gap-2 text-white/75 text-[11px]"><Orbit className="h-3.5 w-3.5" /> {tr('Resumen orbital', 'Orbital summary')}</div>
-                    <div className="mt-1.5 grid grid-cols-2 gap-2 text-xs text-white/80">
+                    <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-white/80 min-w-0">
                       <Field label={tr('Periodo', 'Period')} value={selected.period != null ? `${fmtNum(selected.period, 2)} min` : '—'} mono />
                       <Field label={tr('Inclinacion', 'Inclination')} value={selected.inclination != null ? `${fmtNum(selected.inclination, 2)}°` : '—'} mono />
                       <Field label={tr('Excentricidad', 'Eccentricity')} value={selected.eccentricity != null ? fmtNum(selected.eccentricity, 6) : '—'} mono />
@@ -1122,15 +1149,17 @@ export default function ObjectSearchModule() {
                   </div>
                 </div>
 
-                <OrbitPreview selected={selected} tr={tr} />
+                <div className="flex-shrink-0 min-w-[220px] max-w-full xl:max-w-[280px]">
+                  <OrbitPreview selected={selected} tr={tr} />
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 xl:grid-cols-[1.18fr_0.82fr] gap-2 min-h-0">
-                <div className="rounded-xl border border-white/10 bg-black/25 p-2 h-full">
+              <div className="flex flex-col xl:flex-row gap-2 min-w-0">
+                <div className="flex-1 min-w-0 rounded-xl border border-white/10 bg-black/25 p-2 h-full">
                   <div className="text-[11px] text-white/75 mb-1.5">{tr('Identificacion', 'Identification')}</div>
-                  <div className="grid grid-cols-2 xl:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2 min-w-0">
                     <Field label={tr('Tipo de objeto', 'Object type')} value={selected.objectType} />
-                    <Field label={tr('Pais', 'Country')} value={selected.country || '??'} />
+                    <Field label={tr('Pais', 'Country')} value={COUNTRY_NAMES[selected.country] || selected.country || '??'} />
                     <Field label={tr('Masa', 'Mass')} value={selected.massKg != null ? `${fmtNum(selected.massKg, 0)} kg` : '—'} />
                     <Field label={tr('Constelacion', 'Constellation')} value={selected.constellation || '—'} />
                     <Field label={tr('Pais de caida', 'Fall country')} value={selected.fallCountry || '—'} />
@@ -1138,12 +1167,12 @@ export default function ObjectSearchModule() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-white/10 bg-black/25 p-2 h-full flex flex-col">
+                <div className="flex-shrink-0 min-w-[220px] max-w-full xl:max-w-[420px] rounded-xl border border-white/10 bg-black/25 p-2 h-full flex flex-col">
                   <div className="flex items-center gap-2 text-white/75 text-[11px]"><Database className="h-3.5 w-3.5" /> TLE</div>
-                  <div className="mt-1.5 text-[11px] text-white/85 space-y-1.5">
-                    <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1 mono truncate" title={selected.tle0 || ''}>TLE 0: {selected.tle0 || '—'}</div>
-                    <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1 mono truncate" title={selected.tle1 || ''}>TLE 1: {selected.tle1 || '—'}</div>
-                    <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1 mono truncate" title={selected.tle2 || ''}>TLE 2: {selected.tle2 || '—'}</div>
+                  <div className="mt-1.5 text-[11px] text-white/85 space-y-1.5 min-h-[4.5rem]">
+                    <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1 mono break-all whitespace-pre-line" title={selected.tle0 || ''}>TLE 0: {selected.tle0 || '—'}</div>
+                    <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1 mono break-all whitespace-pre-line" title={selected.tle1 || ''}>TLE 1: {selected.tle1 || '—'}</div>
+                    <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1 mono break-all whitespace-pre-line" title={selected.tle2 || ''}>TLE 2: {selected.tle2 || '—'}</div>
                   </div>
                 </div>
               </div>

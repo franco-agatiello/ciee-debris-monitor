@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import LanguageToggle from './LanguageToggle.jsx'
 import { NavLink } from 'react-router-dom'
 import { Activity, Globe, LayoutGrid, Map, PanelLeftClose, PanelLeftOpen, Search, ShieldAlert } from 'lucide-react'
 import { publicUrl } from '../utils/publicUrl'
@@ -44,7 +45,7 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggle, mobil
 
   if (collapsed && !mobile) {
     return (
-      <aside className="glass h-full px-2 py-3 flex flex-col items-center gap-3">
+      <aside className="glass h-full px-2 py-3 flex flex-col items-center gap-3 relative">
         <button
           type="button"
           onClick={onToggle}
@@ -82,33 +83,29 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggle, mobil
             )
           })}
         </nav>
+        <div className="absolute left-1 right-1 bottom-3 flex items-center justify-center">
+          <LanguageToggle />
+        </div>
       </aside>
     )
   }
 
   return (
-    <aside className="glass h-full p-5 flex flex-col gap-5">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-3 min-w-0">
-          <img
-            src={publicUrl('/img/logo-ciee.png')}
-            alt="CIEE"
-            className="h-8 w-auto object-contain cursor-pointer"
-            onMouseEnter={scheduleRedirect}
-            onMouseLeave={clearRedirectTimer}
-            title={tr('Ir a CIEE', 'Go to CIEE')}
-          />
-          <div className="min-w-0">
-            <div className="text-lg font-extrabold tracking-tight truncate">{tr('Suite CIEE de Vigilancia Espacial', 'CIEE Space Watch Suite')}</div>
-            <div className="text-xs text-white/60 mono">2026-02-03 · local</div>
-          </div>
-        </div>
-
+    <aside className="glass h-full px-5 py-4 flex flex-col gap-4 min-w-[255px] max-w-[275px] relative">
+      <div className="flex items-center gap-2 relative mt-1 mb-2">
+        <img
+          src={publicUrl('/img/logo-ciee.png')}
+          alt="CIEE"
+          className="h-8 w-auto object-contain cursor-pointer ml-2"
+          onMouseEnter={scheduleRedirect}
+          onMouseLeave={clearRedirectTimer}
+          title={tr('Ir a CIEE', 'Go to CIEE')}
+        />
         {!mobile ? (
           <button
             type="button"
             onClick={onToggle}
-            className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-white/15 bg-white/5 text-white/85 hover:bg-white/10 transition"
+            className="absolute right-0 top-1/2 -translate-y-1/2 inline-flex items-center justify-center w-9 h-9 rounded-lg border border-white/15 bg-white/5 text-white/85 hover:bg-white/10 transition"
             aria-label={tr('Ocultar menu lateral', 'Hide sidebar menu')}
             title={tr('Ocultar menu lateral', 'Hide sidebar menu')}
           >
@@ -117,7 +114,7 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggle, mobil
         ) : null}
       </div>
 
-      <nav className="flex flex-col gap-1">
+      <nav className="flex flex-col gap-2 mt-1">
         {links.map((l) => (
           <NavLink
             key={l.to}
@@ -147,7 +144,10 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggle, mobil
                     <div className={isActive ? 'text-sm font-bold text-white' : 'text-sm font-bold text-white/90'}>
                       {l.label}
                     </div>
+                    {/* Subtítulo oculto cuando la sidebar está abierta */}
+                    {/*
                     <div className={isActive ? 'text-xs text-cyan-100/75' : 'text-xs text-white/60'}>{l.hint}</div>
+                    */}
                   </div>
                 </div>
               )
@@ -156,8 +156,9 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggle, mobil
         ))}
       </nav>
 
-      <div className="mt-auto text-xs text-white/55 leading-relaxed">
-        {tr('Datos desde', 'Data from')} <span className="mono">/public/data</span>. {tr('Ejecutar con servidor dev (no file://).', 'Run via dev server (not file://).')}
+      {/* Info de datos eliminada por pedido del usuario */}
+      <div className="absolute left-3 bottom-4">
+        <LanguageToggle />
       </div>
     </aside>
   )
