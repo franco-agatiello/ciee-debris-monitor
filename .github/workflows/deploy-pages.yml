@@ -35,6 +35,13 @@ jobs:
           GITHUB_PAGES: "true"
         run: npm run build
 
+      - name: Normalize Cesium folder for Pages
+        run: |
+          if [ -d "dist/ciee-debris-monitor/cesium" ]; then
+            rm -rf dist/cesium
+            mv dist/ciee-debris-monitor/cesium dist/cesium
+          fi
+
       - name: SPA fallback (404.html)
         run: cp dist/index.html dist/404.html
 

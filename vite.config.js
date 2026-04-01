@@ -17,7 +17,8 @@ export default defineConfig({
     }
   },
   define: {
-    CESIUM_BASE_URL: JSON.stringify(`${base}cesium`)
+    // Use a root-relative Cesium base to avoid nested output directories in Pages builds.
+    CESIUM_BASE_URL: JSON.stringify('/cesium')
   },
   server: {
     port: 5173,
