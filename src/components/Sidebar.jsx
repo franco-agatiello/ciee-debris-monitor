@@ -1,44 +1,17 @@
-import { useEffect, useRef } from 'react'
 import LanguageToggle from './LanguageToggle.jsx'
 import { NavLink } from 'react-router-dom'
-import { Activity, Globe, LayoutGrid, Map, PanelLeftClose, PanelLeftOpen, Search, ShieldAlert } from 'lucide-react'
+import { Globe, LayoutGrid, Map, PanelLeftClose, PanelLeftOpen, Search } from 'lucide-react'
 import { publicUrl } from '../utils/publicUrl'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 
-const CIEE_URL = 'https://www.ciee.unlp.edu.ar/'
-
 export default function Sidebar({ onNavigate, collapsed = false, onToggle, mobile = false }) {
   const { tr } = useI18n()
-  const redirectTimerRef = useRef(null)
-
-  const clearRedirectTimer = () => {
-    if (redirectTimerRef.current) {
-      clearTimeout(redirectTimerRef.current)
-      redirectTimerRef.current = null
-    }
-  }
-
-  const scheduleRedirect = () => {
-    clearRedirectTimer()
-    redirectTimerRef.current = setTimeout(() => {
-      window.location.href = CIEE_URL
-    }, 550)
-  }
-
-  useEffect(
-    () => () => {
-      clearRedirectTimer()
-    },
-    [],
-  )
 
   const links = [
     { to: '/', label: tr('Centro de mision', 'Mission Hub'), hint: tr('Inicio', 'Landing'), Icon: LayoutGrid },
-    { to: '/dashboard/analytics', label: tr('Analitica', 'Analytics'), hint: tr('Tendencias globales', 'Global trends'), Icon: Activity },
-    { to: '/dashboard/map', label: tr('Mapa de reingresos', 'Reentry Map'), hint: tr('Mapa 2D + orbita 3D', '2D map + 3D orbit'), Icon: Map },
     { to: '/dashboard/orbit', label: tr('Monitor orbital', 'Orbit Monitor'), hint: tr('Globo 3D', '3D globe'), Icon: Globe },
-    { to: '/dashboard/risk', label: tr('Riesgo', 'Risk'), hint: tr('Proximamente', 'Coming soon'), Icon: ShieldAlert },
-    { to: '/dashboard/search', label: tr('Buscador', 'Search'), hint: tr('Objetos y debris', 'Objects and debris'), Icon: Search },
+    { to: '/dashboard/map', label: tr('Monitor de reingresos', 'Reentry Monitor'), hint: tr('Mapa 2D + orbita 3D', '2D map + 3D orbit'), Icon: Map },
+    { to: '/dashboard/search', label: tr('Monitor de objetos', 'Object Monitor'), hint: tr('Objetos y debris', 'Objects and debris'), Icon: Search },
   ]
 
   const handleNavigate = () => onNavigate?.()
@@ -92,20 +65,20 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggle, mobil
 
   return (
     <aside className="glass h-full px-5 py-4 flex flex-col gap-4 min-w-[255px] max-w-[275px] relative">
-      <div className="flex items-center gap-2 relative mt-1 mb-2">
-        <img
-          src={publicUrl('/img/logo-ciee.png')}
-          alt="CIEE"
-          className="h-8 w-auto object-contain cursor-pointer ml-2"
-          onMouseEnter={scheduleRedirect}
-          onMouseLeave={clearRedirectTimer}
-          title={tr('Ir a CIEE', 'Go to CIEE')}
-        />
+      <div className="flex items-center justify-between mt-1 mb-2">
+        <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl border border-white/15 bg-white/5">
+          <img
+            src={publicUrl('/img/icono.png')}
+            alt="CIEE"
+            className="h-6 w-6 object-contain"
+            title="CIEE"
+          />
+        </div>
         {!mobile ? (
           <button
             type="button"
             onClick={onToggle}
-            className="absolute right-0 top-1/2 -translate-y-1/2 inline-flex items-center justify-center w-9 h-9 rounded-lg border border-white/15 bg-white/5 text-white/85 hover:bg-white/10 transition"
+            className="inline-flex items-center justify-center w-10 h-10 rounded-xl border border-white/15 bg-white/5 text-white/85 hover:bg-white/10 transition"
             aria-label={tr('Ocultar menu lateral', 'Hide sidebar menu')}
             title={tr('Ocultar menu lateral', 'Hide sidebar menu')}
           >

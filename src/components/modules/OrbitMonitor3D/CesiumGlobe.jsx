@@ -3,6 +3,7 @@ import * as Cesium from 'cesium';
 import * as satellite from 'satellite.js';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 import Sgp4Worker from '../../../workers/sgp4Worker?worker';
+import { useI18n } from '../../../i18n/I18nProvider.jsx';
 
 const TIME_SLICE_THRESHOLD = 12000;
 const FILTER_TYPES = ['PAYLOAD', 'ROCKET BODY', 'DEBRIS'];
@@ -96,8 +97,8 @@ function normalizeDebris(rawData) {
 }
 
 const CesiumGlobe = ({ debrisList, onDebrisSelect }) => {
+  const { tr } = useI18n();
   const [orbitMode, setOrbitMode] = useState('inertial');
-  const [isAstronautMode, setIsAstronautMode] = useState(false);
   const [hoverInfo, setHoverInfo] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -154,31 +155,6 @@ const CesiumGlobe = ({ debrisList, onDebrisSelect }) => {
       }
     } catch (err) {
       console.error('Error toggling fullscreen:', err);
-    }
-  };
-
-  const toggleAstronautMode = async () => {
-    const viewer = viewerRef.current;
-    const issEntity = issEntityRef.current;
-    if (!viewer || !issEntity) return;
-
-    if (!isAstronautMode) {
-      viewer.trackedEntity = issEntity;
-      viewer.selectedEntity = issEntity;
-      viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
-      try {
-        await viewer.flyTo(issEntity, {
-          offset: new Cesium.HeadingPitchRange(0, Cesium.Math.toRadians(-20), 1000),
-          duration: 2.0
-        });
-      } catch {
-        // Ignore flyTo cancellation errors.
-      }
-      setIsAstronautMode(true);
-    } else {
-      viewer.trackedEntity = undefined;
-      viewer.selectedEntity = undefined;
-      setIsAstronautMode(false);
     }
   };
 
@@ -664,7 +640,7 @@ const CesiumGlobe = ({ debrisList, onDebrisSelect }) => {
         <button
           onClick={() => setIsSidebarOpen(true)}
           className="absolute left-4 top-4 z-30 w-12 h-12 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg flex items-center justify-center text-white hover:bg-gray-800 transition-colors group"
-          title="Abrir Filtros"
+          title={tr('Abrir filtros', 'Open filters')}
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -677,17 +653,17 @@ const CesiumGlobe = ({ debrisList, onDebrisSelect }) => {
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         <div className="text-xs text-gray-400 mb-4 pb-4 border-b border-white/10">
-          Objetos visibles: <span className="text-cyan-400 font-bold">{visibleCount}</span> / {totalCount}
+          {tr('Objetos visibles', 'Visible objects')}: <span className="text-cyan-400 font-bold">{visibleCount}</span> / {totalCount}
         </div>
 
-        <h3 className="text-xs uppercase tracking-widest text-gray-400 mb-2">Búsqueda</h3>
+        <h3 className="text-xs uppercase tracking-widest text-gray-400 mb-2">{tr('Busqueda', 'Search')}</h3>
         <div className="mb-4 relative">
           <span className="absolute left-3 top-2.5 text-gray-400">🔍</span>
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Nombre o NORAD..."
+            placeholder={tr('Nombre o NORAD...', 'Name or NORAD...')}
             className="w-full bg-black/40 border border-white/10 rounded-md pl-9 pr-9 py-2 text-sm outline-none focus:border-cyan-400"
           />
           {searchTerm.trim() !== '' && (
@@ -698,7 +674,7 @@ const CesiumGlobe = ({ debrisList, onDebrisSelect }) => {
                 setIsolatedSearchIndex(null);
               }}
               className="absolute right-2 top-1.5 h-7 w-7 rounded text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
-              title="Limpiar búsqueda"
+              title={tr('Limpiar busqueda', 'Clear search')}
             >
               ✕
             </button>
@@ -720,7 +696,7 @@ const CesiumGlobe = ({ debrisList, onDebrisSelect }) => {
         </div>
 
         <div className="border-t border-white/10 pt-4 mt-4">
-          <h3 className="text-xs uppercase tracking-widest text-gray-400 mb-3">País</h3>
+          <h3 className="text-xs uppercase tracking-widest text-gray-400 mb-3">{tr('Pais', 'Country')}</h3>
         </div>
         <div className="mb-6">
           <select
@@ -730,7 +706,7 @@ const CesiumGlobe = ({ debrisList, onDebrisSelect }) => {
             }}
             className="w-full bg-black/40 border border-white/10 rounded-md px-3 py-2 text-sm outline-none focus:border-cyan-400"
           >
-            <option value="">Todos los países</option>
+            <option value="">{tr('Todos los paises', 'All countries')}</option>
             {countryList.map((country) => (
               <option key={country} value={country}>
                 {country}
@@ -740,7 +716,7 @@ const CesiumGlobe = ({ debrisList, onDebrisSelect }) => {
         </div>
 
         <div className="border-t border-white/10 pt-4 mt-4">
-          <h3 className="text-xs uppercase tracking-widest text-gray-400 mb-3">Tipo de Objeto</h3>
+          <h3 className="text-xs uppercase tracking-widest text-gray-400 mb-3">{tr('Tipo de objeto', 'Object type')}</h3>
         </div>
         <div className="space-y-2 mb-6">
           {FILTER_TYPES.map((type) => {
@@ -766,7 +742,7 @@ const CesiumGlobe = ({ debrisList, onDebrisSelect }) => {
 
         <div className="border-t border-white/10 pt-4 mt-4">
           <h3 className="text-xs uppercase tracking-widest text-gray-400 mb-3">
-            Años: {yearRange[0]} - {yearRange[1]}
+            {tr('Anios', 'Years')}: {yearRange[0]} - {yearRange[1]}
           </h3>
         </div>
         <div className="relative mb-6">
@@ -865,12 +841,12 @@ const CesiumGlobe = ({ debrisList, onDebrisSelect }) => {
             }}
             className="flex-1 bg-red-900/40 hover:bg-red-900/60 text-red-300 px-3 py-2 rounded-md text-xs font-bold transition-colors"
           >
-            Limpiar
+            {tr('Limpiar', 'Reset')}
           </button>
           <button
             onClick={() => setIsSidebarOpen(false)}
             className="w-10 bg-gray-700/40 hover:bg-gray-700/60 text-gray-300 px-3 py-2 rounded-md text-xs font-bold transition-colors flex items-center justify-center"
-            title="Cerrar Filtros"
+            title={tr('Cerrar filtros', 'Close filters')}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -885,7 +861,7 @@ const CesiumGlobe = ({ debrisList, onDebrisSelect }) => {
         <button
           onClick={toggleFullscreen}
           className="w-12 h-12 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg flex items-center justify-center text-white hover:bg-gray-800 transition-colors group"
-          title={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
+          title={isFullscreen ? tr('Salir de pantalla completa', 'Exit fullscreen') : tr('Pantalla completa', 'Fullscreen')}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             {isFullscreen ? (
@@ -899,27 +875,18 @@ const CesiumGlobe = ({ debrisList, onDebrisSelect }) => {
         {/* Botón Modo Órbita */}
         <button
           onClick={() => setOrbitMode(orbitMode === 'inertial' ? 'fixed' : 'inertial')}
-          className="w-12 h-12 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg flex items-center justify-center text-white hover:bg-gray-800 transition-colors group"
-          title={orbitMode === 'inertial' ? 'Modo: ECI (Inercial)' : 'Modo: ECEF (Terrestre)'}
+          className="relative w-12 h-12 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg flex items-center justify-center text-white hover:bg-gray-800 transition-colors group"
+          title={orbitMode === 'inertial' ? tr('Modo: ECI (Inercial)', 'Mode: ECI (Inertial)') : tr('Modo: ECEF (Terrestre)', 'Mode: ECEF (Earth-fixed)')}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="8" strokeWidth={2} />
             <ellipse cx="12" cy="12" rx="12" ry="4" strokeWidth={2} />
           </svg>
-          <span className="absolute bottom-14 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+          <span className="pointer-events-none absolute left-1/2 top-[calc(100%+8px)] -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
             {orbitMode === 'inertial' ? 'ECI' : 'ECEF'}
           </span>
         </button>
 
-        {/* Boton Modo Astronauta */}
-        <button
-          onClick={toggleAstronautMode}
-          disabled={!issEntityRef.current}
-          className="w-12 h-12 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg flex items-center justify-center text-white hover:bg-cyan-500/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          title="Modo Astronauta"
-        >
-          <span className="text-base" aria-hidden="true">👩‍🚀</span>
-        </button>
       </div>
 
       {hoverInfo && hoverInfo.data && (
@@ -932,9 +899,9 @@ const CesiumGlobe = ({ debrisList, onDebrisSelect }) => {
         >
           <p className="font-bold text-cyan-400">{hoverInfo.data.name}</p>
           <p className="text-xs text-gray-300">NORAD: {hoverInfo.data.noradId}</p>
-          <p className="text-xs text-gray-300">Tipo: {hoverInfo.data.type}</p>
-          <p className="text-xs text-gray-300">País: {hoverInfo.data.country}</p>
-          <p className="text-xs text-gray-300">Año: {hoverInfo.data.year}</p>
+          <p className="text-xs text-gray-300">{tr('Tipo', 'Type')}: {hoverInfo.data.type}</p>
+          <p className="text-xs text-gray-300">{tr('Pais', 'Country')}: {hoverInfo.data.country}</p>
+          <p className="text-xs text-gray-300">{tr('Anio', 'Year')}: {hoverInfo.data.year}</p>
         </div>
       )}
     </div>

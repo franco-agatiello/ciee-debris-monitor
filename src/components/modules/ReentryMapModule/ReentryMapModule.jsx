@@ -283,7 +283,7 @@ function GlassModal({ open, title, children, blockClose = false, onClose }) {
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
+          className="fixed inset-0 z-[99999] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -298,7 +298,7 @@ function GlassModal({ open, title, children, blockClose = false, onClose }) {
             exit={{ opacity: 0 }}
           />
           <motion.div
-            className="relative w-full max-w-2xl bg-black/50 backdrop-blur-xl border border-white/10 rounded-2xl p-5 shadow-2xl"
+            className="relative my-4 sm:my-0 w-full max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto bg-black/50 backdrop-blur-xl border border-white/10 rounded-2xl p-5 shadow-2xl"
             initial={{ opacity: 0, y: 18, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 18, scale: 0.98 }}
@@ -469,6 +469,7 @@ function ReentryMapModule() {
   const [orbitOpen, setOrbitOpen] = useState(false)
   const [orbitPoint, setOrbitPoint] = useState(null)
   const [reportOpen, setReportOpen] = useState(false)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
 
   const mapHostRef = useRef(null)
   const mapRef = useRef(null)
@@ -1095,17 +1096,39 @@ function ReentryMapModule() {
 
             {/* HUD overlays (critical): z-index above Leaflet panes */}
             <div className="absolute inset-0 z-[1000] pointer-events-none">
-              <div className="absolute top-4 right-4 pointer-events-auto flex flex-col gap-2">
-                <div className="rounded-2xl p-2 bg-[#02040a]/95 backdrop-blur-md border border-white/10 shadow-2xl">
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={toggleFullscreen}
-                      className="px-2.5 py-2 rounded-lg border text-xs font-extrabold transition bg-white/5 border-white/10 hover:bg-white/10"
-                      title={isFullscreen ? tr('Salir de pantalla completa', 'Exit Fullscreen') : tr('Pantalla completa', 'Fullscreen')}
-                    >
-                      {isFullscreen ? tr('Salir', 'Exit') : tr('Full')}
-                    </button>
+              {!isSidebarOpen ? (
+                <button
+                  type="button"
+                  onClick={() => setIsSidebarOpen(true)}
+                  className="absolute left-4 top-4 z-30 w-12 h-12 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg flex items-center justify-center text-white hover:bg-gray-800 transition-colors pointer-events-auto"
+                  title={tr('Abrir filtros', 'Open filters')}
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </button>
+              ) : null}
+
+              <div className="absolute top-4 right-4 pointer-events-auto flex flex-col items-end gap-2">
+                <button
+                  type="button"
+                  onClick={toggleFullscreen}
+                  className="w-12 h-12 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg flex items-center justify-center text-white hover:bg-gray-800 transition-colors"
+                  title={isFullscreen ? tr('Salir de pantalla completa', 'Exit fullscreen') : tr('Pantalla completa', 'Fullscreen')}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {isFullscreen ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6v4m12-4h4v4m0 6v4h-4m-12 0v4h4" />
+                    )}
+                  </svg>
+                </button>
+
+                <div className="rounded-2xl px-4 py-3 bg-[#02040a]/95 backdrop-blur-md border border-white/10 shadow-2xl">
+                  <div className="text-xs text-gray-200">{tr('Objetos visualizados', 'Visualized Objects')}</div>
+                  <div className="mono text-lg font-extrabold">{counterText}</div>
+                  <div className="mt-3 flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => setMode('points')}
@@ -1127,11 +1150,6 @@ function ReentryMapModule() {
                       {tr('Calor', 'Heat')}
                     </button>
                   </div>
-                </div>
-
-                <div className="rounded-2xl px-4 py-3 bg-[#02040a]/95 backdrop-blur-md border border-white/10 shadow-2xl">
-                  <div className="text-xs text-gray-200">{tr('Objetos visualizados', 'Visualized Objects')}</div>
-                  <div className="mono text-lg font-extrabold">{counterText}</div>
                 </div>
               </div>
 
@@ -1155,11 +1173,27 @@ function ReentryMapModule() {
                 </div>
               </div>
 
-              <div className="absolute left-4 top-4 bottom-4 w-[320px] max-w-[80vw] pointer-events-auto">
+              <div
+                className={`absolute left-4 top-4 bottom-4 w-[320px] max-w-[80vw] pointer-events-auto transition-all duration-300 ${
+                  isSidebarOpen ? 'translate-x-0 opacity-100' : '-translate-x-[120%] opacity-0'
+                }`}
+              >
                 <div className="h-full flex flex-col rounded-2xl overflow-hidden bg-[#02040a]/95 backdrop-blur-md border border-white/10 shadow-2xl text-gray-200">
-                  <div className="px-4 py-4 border-b border-white/10">
-                    <div className="text-sm font-extrabold text-white">{tr('Filtros', 'Filters')}</div>
-                    <div className="text-xs text-gray-200 mt-1">{tr('Fecha · Tipo · Pais · Masa · Constelacion', 'Date · Type · Country · Mass · Constellation')}</div>
+                  <div className="px-4 py-4 border-b border-white/10 flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-extrabold text-white">{tr('Filtros', 'Filters')}</div>
+                      <div className="text-xs text-gray-200 mt-1">{tr('Fecha · Tipo · Pais · Masa · Constelacion', 'Date · Type · Country · Mass · Constellation')}</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsSidebarOpen(false)}
+                      className="w-9 h-9 bg-black/40 hover:bg-black/55 border border-white/10 rounded-lg flex items-center justify-center text-white/85 transition-colors"
+                      title={tr('Cerrar filtros', 'Close filters')}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   </div>
 
                   <div className="flex-1 overflow-auto">

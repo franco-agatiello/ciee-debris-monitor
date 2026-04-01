@@ -1,11 +1,9 @@
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Activity, ArrowRight, Globe, LayoutGrid, Map, ShieldAlert } from 'lucide-react'
+import { ArrowRight, Globe, LayoutGrid, Map, Search } from 'lucide-react'
 import { publicUrl } from '../utils/publicUrl'
 import { useI18n } from '../i18n/I18nProvider.jsx'
-
-const CIEE_URL = 'https://www.ciee.unlp.edu.ar/'
 
 export default function LandingPage() {
   const navigate = useNavigate()
@@ -13,24 +11,6 @@ export default function LandingPage() {
 
   const cards = useMemo(
     () => [
-      {
-        key: 'analytics',
-        Icon: Activity,
-        title: tr('Analitica', 'Analytics'),
-        subtitle: tr('Tendencias y metricas globales', 'Global trends and metrics'),
-        to: '/dashboard/analytics',
-        accent: 'from-cyan-400/25 to-cyan-300/5',
-        iconTone: 'text-cyan-100',
-      },
-      {
-        key: 'map',
-        Icon: Map,
-        title: tr('Mapa de reingresos', 'Reentry Map'),
-        subtitle: tr('Eventos, impacto y traza orbital', 'Events, impact and orbital trace'),
-        to: '/dashboard/map',
-        accent: 'from-blue-400/25 to-blue-300/5',
-        iconTone: 'text-blue-100',
-      },
       {
         key: 'orbit',
         Icon: Globe,
@@ -41,13 +21,22 @@ export default function LandingPage() {
         iconTone: 'text-emerald-100',
       },
       {
-        key: 'risk',
-        Icon: ShieldAlert,
-        title: tr('Riesgo', 'Risk'),
-        subtitle: tr('Conjuncion y colision', 'Conjunction and collision'),
-        to: '/dashboard/risk',
-        accent: 'from-red-400/25 to-red-300/5',
-        iconTone: 'text-red-100',
+        key: 'map',
+        Icon: Map,
+        title: tr('Monitor de reingresos', 'Reentry Monitor'),
+        subtitle: tr('Eventos, impacto y traza orbital', 'Events, impact and orbital trace'),
+        to: '/dashboard/map',
+        accent: 'from-blue-400/25 to-blue-300/5',
+        iconTone: 'text-blue-100',
+      },
+      {
+        key: 'search',
+        Icon: Search,
+        title: tr('Monitor de objetos', 'Object Monitor'),
+        subtitle: tr('Busqueda por nombre, NORAD y atributos', 'Search by name, NORAD and attributes'),
+        to: '/dashboard/search',
+        accent: 'from-cyan-400/25 to-cyan-300/5',
+        iconTone: 'text-cyan-100',
       },
     ],
     [tr],
@@ -69,10 +58,7 @@ export default function LandingPage() {
               src={publicUrl('/img/logo-ciee.png')}
               alt="CIEE"
               className="h-14 md:h-16 w-auto cursor-pointer"
-              onMouseEnter={() => {
-                window.location.href = CIEE_URL
-              }}
-              title={tr('Ir a CIEE', 'Go to CIEE')}
+              title="CIEE"
             />
 
             <h1 className="mt-5 text-3xl md:text-4xl font-extrabold tracking-tight text-white">

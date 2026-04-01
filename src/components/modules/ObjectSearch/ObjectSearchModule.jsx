@@ -975,20 +975,7 @@ export default function ObjectSearchModule() {
   return (
     <div className="p-4 h-screen min-h-0 flex flex-col gap-2.5">
       <div className="glass rounded-2xl p-4">
-        <div className="flex items-center gap-2">
-          <Search className="h-4 w-4 text-cyan-200" />
-          <div className="text-base md:text-lg font-extrabold tracking-tight text-white">{tr('Buscador unificado de objetos y debris', 'Unified object and debris search')}</div>
-        </div>
-        <div className="mt-1 text-[11px] text-white/60">
-          {tr('Busca por NORAD, nombre, pais o tipo. Todo en una sola ficha.', 'Search by NORAD, name, country or type. Everything in one profile.')}
-        </div>
-        {dataValidAt ? (
-          <div className="mt-1 text-[11px] text-white/50">
-            {tr('Validez de datos', 'Data validity')}: {new Date(dataValidAt).toLocaleDateString()}
-          </div>
-        ) : null}
-
-        <div className="mt-3 relative">
+        <div className="relative">
           <Search className="h-4 w-4 text-white/45 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="search"
