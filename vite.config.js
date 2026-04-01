@@ -2,7 +2,11 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import cesium from 'vite-plugin-cesium';
 
+const isGitHubPages = process.env.GITHUB_PAGES === 'true';
+const base = isGitHubPages ? '/ciee-debris-monitor/' : '/';
+
 export default defineConfig({
+  base,
   plugins: [
     react(),
     cesium()
@@ -13,7 +17,7 @@ export default defineConfig({
     }
   },
   define: {
-    CESIUM_BASE_URL: JSON.stringify('/cesium')
+    CESIUM_BASE_URL: JSON.stringify(`${base}cesium`)
   },
   server: {
     port: 5173,

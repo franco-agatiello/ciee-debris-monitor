@@ -33,3 +33,6 @@ Thumbs.db
 
 # misc
 *.bak
+
+# large precomputed datasets (keep local, do not commit)
+public/data/precomputed/*.json
