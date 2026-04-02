@@ -29,8 +29,8 @@ class ErrorBoundaryInner extends React.Component {
   render() {
     if (!this.state.hasError) return this.props.children
 
-    const title = this.props.title || this.props.tr('Algo salio mal', 'Something went wrong')
-    const hint = this.props.hint || this.props.tr('Revisa la terminal del servidor dev y la consola del navegador para mas detalle.', 'Check the dev server terminal and browser console for details.')
+    const title = this.props.title || this.props.tr('Algo salió mal', 'Something went wrong')
+    const hint = this.props.hint || this.props.tr('Revisa la terminal del servidor dev y la consola del navegador para más detalle.', 'Check the dev server terminal and browser console for details.')
 
     return (
       <div className="p-5">

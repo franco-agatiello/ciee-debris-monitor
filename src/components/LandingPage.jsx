@@ -15,7 +15,7 @@ export default function LandingPage() {
         key: 'orbit',
         Icon: Globe,
         title: tr('Monitor orbital', 'Orbit Monitor'),
-        subtitle: tr('Vigilancia 3D del catalogo activo', '3D active catalog surveillance'),
+        subtitle: tr('Vigilancia 3D del catálogo activo', '3D active catalog surveillance'),
         to: '/dashboard/orbit',
         accent: 'from-emerald-400/25 to-emerald-300/5',
         iconTone: 'text-emerald-100',
@@ -33,7 +33,7 @@ export default function LandingPage() {
         key: 'search',
         Icon: Search,
         title: tr('Monitor de objetos', 'Object Monitor'),
-        subtitle: tr('Busqueda por nombre, NORAD y atributos', 'Search by name, NORAD and attributes'),
+        subtitle: tr('Búsqueda por nombre, NORAD y atributos', 'Search by name, NORAD and attributes'),
         to: '/dashboard/search',
         accent: 'from-cyan-400/25 to-cyan-300/5',
         iconTone: 'text-cyan-100',
@@ -62,14 +62,14 @@ export default function LandingPage() {
             />
 
             <h1 className="mt-5 text-3xl md:text-4xl font-extrabold tracking-tight text-white">
-              {tr('Selecciona un modulo', 'Select a module')}
+              {tr('Selecciona un módulo', 'Select a module')}
             </h1>
             <p className="mt-2 text-sm md:text-base text-white/65 max-w-2xl">
               {tr('Acceso directo a los componentes operativos.', 'Direct access to operational modules.')}
             </p>
 
             <div className="mt-4 text-[11px] px-2 py-1 rounded-full border border-cyan-300/30 bg-cyan-400/10 text-cyan-100/85 mono uppercase tracking-wider">
-              {tr('Centro de mision', 'Mission hub')}
+              {tr('Centro de misión', 'Mission hub')}
             </div>
           </div>
 
@@ -106,3 +106,4 @@ export default function LandingPage() {
     </motion.div>
   )
 }
+

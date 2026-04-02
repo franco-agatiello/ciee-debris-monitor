@@ -52,7 +52,7 @@ export default function DashboardLayout() {
           type="button"
           onClick={() => setMobileSidebarOpen(true)}
           className="inline-flex items-center justify-center w-11 h-11 rounded-xl border border-white/15 bg-black/45 backdrop-blur-md text-white/90 hover:bg-black/60 transition"
-          aria-label={tr('Abrir menu lateral', 'Open sidebar menu')}
+          aria-label={tr('Abrir menú lateral', 'Open sidebar menu')}
         >
           <Menu className="h-5 w-5" />
         </button>
@@ -69,9 +69,9 @@ export default function DashboardLayout() {
           <div className="h-full flex flex-col pt-14 md:pt-0">
             <div className="flex-1 overflow-auto">
               <ErrorBoundary
-                title={tr('La aplicacion fallo', 'The app crashed')}
+                title={tr('La aplicación falló', 'The app crashed')}
                 hint={tr(
-                  'Ocurrio un error de ejecucion al renderizar. Los detalles debajo ayudan a identificar el problema.',
+                  'Ocurrió un error de ejecución al renderizar. Los detalles debajo ayudan a identificar el problema.',
                   'A runtime error occurred while rendering. The error details below should tell us what to fix.',
                 )}
               >
@@ -87,7 +87,7 @@ export default function DashboardLayout() {
           <button
             type="button"
             className="absolute inset-0 bg-black/65"
-            aria-label={tr('Cerrar menu lateral', 'Close sidebar menu')}
+            aria-label={tr('Cerrar menú lateral', 'Close sidebar menu')}
             onClick={() => setMobileSidebarOpen(false)}
           />
 
@@ -111,3 +111,4 @@ export default function DashboardLayout() {
     </motion.div>
   )
 }
+

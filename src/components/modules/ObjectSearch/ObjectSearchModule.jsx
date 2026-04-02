@@ -741,7 +741,7 @@ function OrbitPreview({ selected, tr }) {
         <div className="flex items-center justify-between gap-2 text-white/70 text-xs mb-2">
           <div className="flex items-center gap-2">
             <GlobeIcon className="h-3.5 w-3.5" />
-            {tr('Simulacion orbital', 'Orbital simulation')}
+            {tr('Simulación orbital', 'Orbital simulation')}
           </div>
           <button
             type="button"
@@ -759,7 +759,7 @@ function OrbitPreview({ selected, tr }) {
             previewCanvas
           ) : (
             <div className="h-full w-full flex items-center justify-center text-xs text-white/50 text-center px-4">
-              {tr('Sin TLE disponible para simular orbita', 'No TLE available for orbit simulation')}
+              {tr('Sin TLE disponible para simular órbita', 'No TLE available for orbit simulation')}
             </div>
           )}
         </div>
@@ -771,7 +771,7 @@ function OrbitPreview({ selected, tr }) {
             <div className="flex items-center justify-between gap-2 text-xs text-white/75 mb-2">
               <div className="flex items-center gap-2">
                 <GlobeIcon className="h-4 w-4" />
-                <span>{tr('Simulacion orbital - pantalla completa', 'Orbital simulation - fullscreen')}</span>
+                <span>{tr('Simulación orbital - pantalla completa', 'Orbital simulation - fullscreen')}</span>
               </div>
               <button
                 type="button"
@@ -792,7 +792,7 @@ function OrbitPreview({ selected, tr }) {
                 previewCanvas
               ) : (
                 <div className="h-full w-full flex items-center justify-center text-sm text-white/50 text-center px-4">
-                  {tr('Sin TLE disponible para simular orbita', 'No TLE available for orbit simulation')}
+                  {tr('Sin TLE disponible para simular órbita', 'No TLE available for orbit simulation')}
                 </div>
               )}
             </div>
@@ -955,7 +955,7 @@ export default function ObjectSearchModule() {
         <div className="glass rounded-2xl p-5 w-full max-w-xl">
           <div className="text-sm font-bold text-white/90">{tr('Buscador de objetos', 'Object search')}</div>
           <div className="mt-3 inline-loading-bar" />
-          <div className="mt-3 text-xs text-white/60 mono">{tr('Cargando catalogo unificado...', 'Loading unified catalog...')}</div>
+          <div className="mt-3 text-xs text-white/60 mono">{tr('Cargando catálogo unificado...', 'Loading unified catalog...')}</div>
         </div>
       </div>
     )
@@ -1002,7 +1002,7 @@ export default function ObjectSearchModule() {
           </select>
 
           {/* Filtro por país */}
-          <label className="text-white/55" htmlFor="countryFilter">{tr('Pais', 'Country')}:</label>
+          <label className="text-white/55" htmlFor="countryFilter">{tr('País', 'Country')}:</label>
           <select
             id="countryFilter"
             value={countryFilter}
@@ -1036,9 +1036,9 @@ export default function ObjectSearchModule() {
             onChange={e => setSortMode(e.target.value)}
             className="rounded-lg border border-white/15 bg-black/30 px-2 py-1.5 text-white/80 text-xs focus:border-cyan-300/45"
           >
-            <option value={SORT_MODE_RECENT}>{tr('Mas recientes', 'Most recent')}</option>
-            <option value={SORT_MODE_OLDEST}>{tr('Mas antiguos', 'Oldest')}</option>
-            <option value={SORT_MODE_ALPHA}>{tr('Alfabetico', 'Alphabetical')}</option>
+            <option value={SORT_MODE_RECENT}>{tr('Más recientes', 'Most recent')}</option>
+            <option value={SORT_MODE_OLDEST}>{tr('Más antiguos', 'Oldest')}</option>
+            <option value={SORT_MODE_ALPHA}>{tr('Alfabético', 'Alphabetical')}</option>
           </select>
         </div>
       </div>
@@ -1080,7 +1080,7 @@ export default function ObjectSearchModule() {
             })}
             {!filtered.length ? (
               <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-xs text-white/60">
-                {tr('No hay coincidencias para tu busqueda.', 'No matches for your search.')}
+                {tr('No hay coincidencias para tu búsqueda.', 'No matches for your search.')}
               </div>
             ) : null}
 
@@ -1090,7 +1090,7 @@ export default function ObjectSearchModule() {
                 onClick={() => setVisibleCount((v) => Math.min(filtered.length, v + RESULTS_STEP))}
                 className="w-full rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 px-3 py-2 text-xs font-semibold text-white/85 transition"
               >
-                {tr('Mostrar mas resultados', 'Show more results')}
+                {tr('Mostrar más resultados', 'Show more results')}
               </button>
             ) : null}
           </div>
@@ -1107,10 +1107,10 @@ export default function ObjectSearchModule() {
               </div>
 
               <div className="flex flex-wrap gap-2 min-w-0">
-                {statusBadge(selected.sources.total, 'En catalogo', 'In catalog', tr)}
-                {statusBadge(selected.sources.orbit, 'En orbita', 'In orbit', tr)}
+                {statusBadge(selected.sources.total, 'En catálogo', 'In catalog', tr)}
+                {statusBadge(selected.sources.orbit, 'En órbita', 'In orbit', tr)}
                 {statusBadge(selected.sources.reentry, 'Reingresado', 'Reentered', tr)}
-                {statusBadge(selected.sources.impact, 'Con punto de caida', 'With impact point', tr)}
+                {statusBadge(selected.sources.impact, 'Con punto de caída', 'With impact point', tr)}
               </div>
 
               <div className="flex flex-col xl:flex-row gap-2 min-w-0">
@@ -1128,7 +1128,7 @@ export default function ObjectSearchModule() {
                     <div className="flex items-center gap-2 text-white/75 text-[11px]"><Orbit className="h-3.5 w-3.5" /> {tr('Resumen orbital', 'Orbital summary')}</div>
                     <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-white/80 min-w-0">
                       <Field label={tr('Periodo', 'Period')} value={selected.period != null ? `${fmtNum(selected.period, 2)} min` : '—'} mono />
-                      <Field label={tr('Inclinacion', 'Inclination')} value={selected.inclination != null ? `${fmtNum(selected.inclination, 2)}°` : '—'} mono />
+                      <Field label={tr('Inclinación', 'Inclination')} value={selected.inclination != null ? `${fmtNum(selected.inclination, 2)}°` : '—'} mono />
                       <Field label={tr('Excentricidad', 'Eccentricity')} value={selected.eccentricity != null ? fmtNum(selected.eccentricity, 6) : '—'} mono />
                       <Field label={tr('Apoapsis', 'Apoapsis')} value={selected.apoapsis != null ? `${fmtNum(selected.apoapsis, 1)} km` : '—'} mono />
                       <Field label={tr('Periapsis', 'Periapsis')} value={selected.periapsis != null ? `${fmtNum(selected.periapsis, 1)} km` : '—'} mono />
@@ -1143,13 +1143,13 @@ export default function ObjectSearchModule() {
 
               <div className="flex flex-col xl:flex-row gap-2 min-w-0">
                 <div className="flex-1 min-w-0 rounded-xl border border-white/10 bg-black/25 p-2 h-full">
-                  <div className="text-[11px] text-white/75 mb-1.5">{tr('Identificacion', 'Identification')}</div>
+                  <div className="text-[11px] text-white/75 mb-1.5">{tr('Identificación', 'Identification')}</div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2 min-w-0">
                     <Field label={tr('Tipo de objeto', 'Object type')} value={selected.objectType} />
-                    <Field label={tr('Pais', 'Country')} value={COUNTRY_NAMES[selected.country] || selected.country || '??'} />
+                    <Field label={tr('País', 'Country')} value={COUNTRY_NAMES[selected.country] || selected.country || '??'} />
                     <Field label={tr('Masa', 'Mass')} value={selected.massKg != null ? `${fmtNum(selected.massKg, 0)} kg` : '—'} />
-                    <Field label={tr('Constelacion', 'Constellation')} value={selected.constellation || '—'} />
-                    <Field label={tr('Pais de caida', 'Fall country')} value={selected.fallCountry || '—'} />
+                    <Field label={tr('Constelación', 'Constellation')} value={selected.constellation || '—'} />
+                    <Field label={tr('País de caída', 'Fall country')} value={selected.fallCountry || '—'} />
                     <Field label={tr('Lat/Lon', 'Lat/Lon')} value={`${selected.latFall != null ? fmtNum(selected.latFall, 3) : '—'} / ${selected.lonFall != null ? fmtNum(selected.lonFall, 3) : '—'}`} mono />
                   </div>
                 </div>
@@ -1172,3 +1172,4 @@ export default function ObjectSearchModule() {
     </div>
   )
 }
+

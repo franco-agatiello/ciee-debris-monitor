@@ -384,7 +384,7 @@ function Orbit3DModal({ open, point, onClose }) {
   const horas = Number.isFinite(point?.horasDiff) ? point.horasDiff : null
 
   return (
-    <GlassModal open={open} title={tr('Vista de orbita 3D', '3D Orbit View')} onClose={onClose}>
+    <GlassModal open={open} title={tr('Vista de órbita 3D', '3D Orbit View')} onClose={onClose}>
       <div className="text-sm text-white/80">
         <div className="font-extrabold">{point?.name || tr('Objeto desconocido', 'Unknown object')}</div>
         <div className="text-xs text-white/60 mono mt-1">NORAD: {point?.norad || '—'}</div>
@@ -395,7 +395,7 @@ function Orbit3DModal({ open, point, onClose }) {
           <div className="glass rounded-2xl px-4 py-3 max-w-[360px] pointer-events-auto">
             <div className="text-xs text-white/60">{tr('Diferencia de tiempo', 'Time Difference')}</div>
             <div className="mt-1 text-sm font-extrabold text-white">
-              {dias == null && horas == null ? '—' : `${dias == null ? '—' : dias.toFixed(2)} ${tr('dias', 'days')}, ${horas == null ? '—' : horas.toFixed(2)} ${tr('horas', 'hours')}`}
+              {dias == null && horas == null ? '—' : `${dias == null ? '—' : dias.toFixed(2)} ${tr('días', 'days')}, ${horas == null ? '—' : horas.toFixed(2)} ${tr('horas', 'hours')}`}
             </div>
             <div className="mt-2 text-[11px] text-white/60 leading-relaxed">
               {tr('Visualiza la trayectoria calculada desde el ultimo TLE disponible contra el punto real de impacto.', 'This visualizes the trajectory calculated from the last available TLE vs the actual impact point.')}
@@ -769,14 +769,14 @@ function ReentryMapModule() {
     }
 
     const classLabels = {
-      payload: tr('Carga util', 'Payload'),
+      payload: tr('Carga útil', 'Payload'),
       rocket: tr('Cuerpo de cohete', 'Rocket Body'),
       debris: tr('Basura', 'Debris'),
       unknown: tr('Desconocido', 'Unknown'),
     }
 
     const classShortLabels = {
-      payload: tr('Carga util', 'Payload'),
+      payload: tr('Carga útil', 'Payload'),
       rocket: tr('Cohete', 'Rocket'),
       debris: tr('Basura', 'Debris'),
       unknown: tr('Desc.', 'Unk.'),
@@ -806,10 +806,10 @@ function ReentryMapModule() {
     const massDistributionVisible = massDistribution.filter((d) => d.massKg > 0)
 
     const bucketLabels = {
-      lt1: tr('<1 anio', '<1 year'),
-      '1to5': tr('1-5 anios', '1-5 years'),
-      '5to10': tr('5-10 anios', '5-10 years'),
-      gt10: tr('>10 anios', '>10 years'),
+      lt1: tr('<1 año', '<1 year'),
+      '1to5': tr('1-5 años', '1-5 years'),
+      '5to10': tr('5-10 años', '5-10 years'),
+      gt10: tr('>10 años', '>10 years'),
     }
 
     const recencyDistribution = RECENCY_BUCKETS.map((b) => ({
@@ -920,7 +920,7 @@ function ReentryMapModule() {
             <div className="glass rounded-2xl p-4 h-full flex items-center justify-center">
               <div className="text-center">
                 <div className="text-sm font-bold">{tr('Preparando mapa…', 'Preparing map…')}</div>
-                <div className="text-xs text-white/60 mt-2">{tr('Montaje diferido hasta terminar la transicion.', 'Mounting deferred until after transition.')}</div>
+                <div className="text-xs text-white/60 mt-2">{tr('Montaje diferido hasta terminar la transición.', 'Mounting deferred until after transition.')}</div>
               </div>
             </div>
           </div>
@@ -943,8 +943,8 @@ function ReentryMapModule() {
                 <div className="text-sm font-bold">{tr('No hay puntos disponibles en el mapa', 'No map points available')}</div>
                 <div className="text-xs text-white/70 mt-2">
                   {hasParsedRows
-                    ? tr('Se parsearon filas, pero no se generaron puntos lat/lon validos. Puede pasar si no coinciden encabezados (problema de delimitador) o faltan columnas de ubicacion.', 'Rows were parsed, but no valid lat/lon points were produced. This can happen if CSV headers do not match (delimiter issue) or the dataset lacks location columns.')
-                    : tr('No se parseo ninguna fila del CSV.', 'No rows were parsed from the CSV.')}
+                    ? tr('Se parsearon filas, pero no se generaron puntos lat/lon válidos. Puede pasar si no coinciden encabezados (problema de delimitador) o faltan columnas de ubicación.', 'Rows were parsed, but no valid lat/lon points were produced. This can happen if CSV headers do not match (delimiter issue) or the dataset lacks location columns.')
+                    : tr('No se parseó ninguna fila del CSV.', 'No rows were parsed from the CSV.')}
                 </div>
                 <div className="text-[11px] text-white/60 mt-3 mono">{tr('Columnas esperadas', 'Expected columns')}: lat_caida, lon_caida</div>
               </div>
@@ -1005,7 +1005,7 @@ function ReentryMapModule() {
                         <div>
                           <span className="text-white/60">{tr('Tipo', 'Type')}:</span>{' '}
                           {p.normClass === 'payload'
-                            ? tr('Carga util', 'Payload')
+                            ? tr('Carga útil', 'Payload')
                             : p.normClass === 'rocket'
                               ? tr('Cuerpo de cohete', 'Rocket Body')
                               : p.normClass === 'debris'
@@ -1013,13 +1013,13 @@ function ReentryMapModule() {
                                 : tr('Desconocido', 'Unknown')}
                         </div>
                         <div>
-                          <span className="text-white/60">{tr('Pais', 'Country')}:</span> {p.country || '—'}
+                          <span className="text-white/60">{tr('País', 'Country')}:</span> {p.country || '—'}
                         </div>
                         <div>
                           <span className="text-white/60">{tr('Reingreso', 'Reentry')}:</span> {p.date || '—'}
                         </div>
                         <div>
-                          <span className="text-white/60">{tr('Constelacion', 'Constellation')}:</span> {p.constellation || '—'}
+                          <span className="text-white/60">{tr('Constelación', 'Constellation')}:</span> {p.constellation || '—'}
                         </div>
                         <div>
                           <span className="text-white/60">{tr('Masa', 'Mass')}:</span> {Number.isFinite(p.massKg) ? `${p.massKg.toFixed(0)} kg` : '—'}
@@ -1029,12 +1029,12 @@ function ReentryMapModule() {
                           <span className="mono">
                             {p.diasDiff == null && p.horasDiff == null
                               ? '—'
-                              : `${p.diasDiff == null ? '—' : p.diasDiff.toFixed(2)} ${tr('dias', 'days')}, ${p.horasDiff == null ? '—' : p.horasDiff.toFixed(2)} ${tr('horas', 'hours')}`}
+                              : `${p.diasDiff == null ? '—' : p.diasDiff.toFixed(2)} ${tr('días', 'days')}, ${p.horasDiff == null ? '—' : p.horasDiff.toFixed(2)} ${tr('horas', 'hours')}`}
                           </span>
                         </div>
                         {p.fallCountry ? (
                           <div>
-                            <span className="text-white/60">{tr('Pais de caida', 'Fall country')}:</span> {p.fallCountry}
+                            <span className="text-white/60">{tr('País de caída', 'Fall country')}:</span> {p.fallCountry}
                           </div>
                         ) : null}
                       </div>
@@ -1048,9 +1048,9 @@ function ReentryMapModule() {
                             setOrbitOpen(true)
                           }}
                           disabled={!p.tle1 || !p.tle2}
-                          title={!p.tle1 || !p.tle2 ? tr('No hay TLE disponible para este objeto', 'No TLE available for this object') : tr('Abrir visor de orbita 3D', 'Open 3D orbit viewer')}
+                          title={!p.tle1 || !p.tle2 ? tr('No hay TLE disponible para este objeto', 'No TLE available for this object') : tr('Abrir visor de órbita 3D', 'Open 3D orbit viewer')}
                         >
-                          {tr('Ver orbita 3D', 'View 3D Orbit')}
+                          {tr('Ver órbita 3D', 'View 3D Orbit')}
                         </button>
 
                         <button
@@ -1161,12 +1161,12 @@ function ReentryMapModule() {
                       <div key={b.key} className="flex items-center gap-2">
                         <span className="w-3 h-3 rounded-full" style={{ background: b.color }} />
                         {b.key === 'lt1'
-                          ? tr('< 1 anio', '< 1 year ago')
+                          ? tr('< 1 año', '< 1 year ago')
                           : b.key === '1to5'
-                            ? tr('1 - 5 anios', '1 - 5 years ago')
+                            ? tr('1 - 5 años', '1 - 5 years ago')
                             : b.key === '5to10'
-                              ? tr('5 - 10 anios', '5 - 10 years ago')
-                              : tr('> 10 anios', '> 10 years ago')}
+                              ? tr('5 - 10 años', '5 - 10 years ago')
+                              : tr('> 10 años', '> 10 years ago')}
                       </div>
                     ))}
                   </div>
@@ -1182,7 +1182,7 @@ function ReentryMapModule() {
                   <div className="px-4 py-4 border-b border-white/10 flex items-start justify-between gap-3">
                     <div>
                       <div className="text-sm font-extrabold text-white">{tr('Filtros', 'Filters')}</div>
-                      <div className="text-xs text-gray-200 mt-1">{tr('Fecha · Tipo · Pais · Masa · Constelacion', 'Date · Type · Country · Mass · Constellation')}</div>
+                      <div className="text-xs text-gray-200 mt-1">{tr('Fecha · Tipo · País · Masa · Constelación', 'Date · Type · Country · Mass · Constellation')}</div>
                     </div>
                     <button
                       type="button"
@@ -1198,7 +1198,7 @@ function ReentryMapModule() {
 
                   <div className="flex-1 overflow-auto">
                     <FilterAccordion id="date" title={tr('📅 Rango de fechas', '📅 Date Range')} openId={openFilterId} setOpenId={setOpenFilterId}>
-                      <div className="text-xs text-gray-200">{tr('Rango de anios', 'Year range')}</div>
+                      <div className="text-xs text-gray-200">{tr('Rango de años', 'Year range')}</div>
                       <div className="mt-2 flex items-center justify-between gap-3 text-sm">
                         <div className="mono">{yearFrom ?? yearMin}</div>
                         <div className="text-gray-200">→</div>
@@ -1263,7 +1263,7 @@ function ReentryMapModule() {
                       <div className="grid grid-cols-1 gap-2">
                         <label className="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 bg-black/40 hover:bg-black/50 cursor-pointer">
                           <input type="checkbox" checked={showPayload} onChange={(e) => setShowPayload(e.target.checked)} />
-                          <span className="text-sm text-gray-200">{tr('Carga util', 'Payload')}</span>
+                          <span className="text-sm text-gray-200">{tr('Carga útil', 'Payload')}</span>
                         </label>
                         <label className="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 bg-black/40 hover:bg-black/50 cursor-pointer">
                           <input type="checkbox" checked={showRocket} onChange={(e) => setShowRocket(e.target.checked)} />
@@ -1280,11 +1280,11 @@ function ReentryMapModule() {
                       </div>
                     </FilterAccordion>
 
-                    <FilterAccordion id="country" title={tr('🌎 Pais', '🌎 Country')} openId={openFilterId} setOpenId={setOpenFilterId}>
+                    <FilterAccordion id="country" title={tr('🌎 País', '🌎 Country')} openId={openFilterId} setOpenId={setOpenFilterId}>
                       <input
                         value={countrySearch}
                         onChange={(e) => setCountrySearch(e.target.value)}
-                        placeholder={tr('Buscar codigo de pais…', 'Search country code…')}
+                        placeholder={tr('Buscar código de país…', 'Search country code…')}
                         className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/10 text-sm text-gray-200 placeholder:text-gray-200/70 outline-none focus:border-white/20"
                       />
 
@@ -1332,11 +1332,11 @@ function ReentryMapModule() {
                       </div>
 
                       {visibleCountries.length > 120 ? (
-                        <div className="mt-2 text-[11px] text-gray-200">{tr('Mostrando las primeras 120 coincidencias. Ajusta la busqueda para ver mas.', 'Showing first 120 matches. Refine search to see others.')}</div>
+                        <div className="mt-2 text-[11px] text-gray-200">{tr('Mostrando las primeras 120 coincidencias. Ajusta la búsqueda para ver más.', 'Showing first 120 matches. Refine search to see others.')}</div>
                       ) : null}
                     </FilterAccordion>
 
-                    <FilterAccordion id="mass" title={tr('⚖️ Categoria de masa', '⚖️ Mass Category')} openId={openFilterId} setOpenId={setOpenFilterId}>
+                    <FilterAccordion id="mass" title={tr('⚖️ Categoría de masa', '⚖️ Mass Category')} openId={openFilterId} setOpenId={setOpenFilterId}>
                       <div className="grid grid-cols-1 gap-2">
                         <label className="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 bg-black/40 hover:bg-black/50 cursor-pointer">
                           <input type="checkbox" checked={showMassLight} onChange={(e) => setShowMassLight(e.target.checked)} />
@@ -1351,12 +1351,12 @@ function ReentryMapModule() {
                           <span className="text-sm text-gray-200">{tr('Pesada (> 1000 kg)', 'Heavy (> 1000 kg)')}</span>
                         </label>
                         <div className="mt-2 text-[11px] text-gray-200">
-                          {tr('Tip: las masas desconocidas se incluyen por defecto. Si desmarcas alguna categoria, solo quedan objetos con masa conocida de las categorias seleccionadas.', 'Tip: unknown masses are included by default. Once you uncheck any bucket, only objects with known mass matching selected buckets remain.')}
+                          {tr('Tip: las masas desconocidas se incluyen por defecto. Si desmarcas alguna categoría, solo quedan objetos con masa conocida de las categorías seleccionadas.', 'Tip: unknown masses are included by default. Once you uncheck any bucket, only objects with known mass matching selected buckets remain.')}
                         </div>
                       </div>
                     </FilterAccordion>
 
-                    <FilterAccordion id="constellation" title={tr('🛰️ Constelacion', '🛰️ Constellation')} openId={openFilterId} setOpenId={setOpenFilterId}>
+                    <FilterAccordion id="constellation" title={tr('🛰️ Constelación', '🛰️ Constellation')} openId={openFilterId} setOpenId={setOpenFilterId}>
                       <select
                         value={selectedConstellation}
                         onChange={(e) => setSelectedConstellation(e.target.value)}
@@ -1369,7 +1369,7 @@ function ReentryMapModule() {
                           </option>
                         ))}
                       </select>
-                      <div className="mt-2 text-[11px] text-gray-200">{tr('"NoConstelacion" se excluye del desplegable pero permanece visible sin filtro.', '"NoConstelacion" is excluded from the dropdown but remains visible when no filter is selected.')}</div>
+                      <div className="mt-2 text-[11px] text-gray-200">{tr('"NoConstelación" se excluye del desplegable pero permanece visible sin filtro.', '"NoConstelación" is excluded from the dropdown but remains visible when no filter is selected.')}</div>
                     </FilterAccordion>
 
                     {trackMeta ? (
@@ -1425,7 +1425,7 @@ function ReentryMapModule() {
 
             <GlassModal
               open={reportOpen}
-              title={tr('Informe de seleccion', 'Selection report')}
+              title={tr('Informe de selección', 'Selection report')}
               onClose={() => setReportOpen(false)}
             >
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1438,14 +1438,14 @@ function ReentryMapModule() {
                   <div className="mono text-lg font-extrabold mt-1">{formatKg(reportData.massTotalKg)}</div>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                  <div className="text-xs text-white/60">{tr('Tiempo promedio en orbita', 'Average time in orbit')}</div>
-                  <div className="mono text-lg font-extrabold mt-1">{reportData.orbitDaysAvg.toFixed(1)} {tr('dias', 'days')}</div>
+                  <div className="text-xs text-white/60">{tr('Tiempo promedio en órbita', 'Average time in orbit')}</div>
+                  <div className="mono text-lg font-extrabold mt-1">{reportData.orbitDaysAvg.toFixed(1)} {tr('días', 'days')}</div>
                 </div>
               </div>
 
               <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-4">
                 <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-                  <div className="text-sm font-extrabold">{tr('Distribucion por tramo (anio de caida)', 'Distribution by range (reentry year)')}</div>
+                  <div className="text-sm font-extrabold">{tr('Distribución por tramo (año de caída)', 'Distribution by range (reentry year)')}</div>
                   <div className="h-[250px] mt-2">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -1472,7 +1472,7 @@ function ReentryMapModule() {
                 </div>
 
                 <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-                  <div className="text-sm font-extrabold">{tr('Distribucion por clase de objeto', 'Object class distribution')}</div>
+                  <div className="text-sm font-extrabold">{tr('Distribución por clase de objeto', 'Object class distribution')}</div>
                   <div className="h-[250px] mt-2">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -1507,7 +1507,7 @@ function ReentryMapModule() {
                 </div>
 
                 <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-                  <div className="text-sm font-extrabold">{tr('Tiempo en orbita', 'Time in orbit')}</div>
+                  <div className="text-sm font-extrabold">{tr('Tiempo en órbita', 'Time in orbit')}</div>
                   <div className="h-[250px] mt-2">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -1538,7 +1538,7 @@ function ReentryMapModule() {
             <GlassModal open={!ack} title={tr('Aviso de alta fidelidad', 'High Fidelity Notice')} blockClose onClose={() => {}}>
               <div className="text-lg font-extrabold text-white/90">{tr('ADVERTENCIA', 'WARNING')}</div>
               <div className="mt-3 text-sm text-white/80 leading-relaxed">
-                {tr('Esta visualizacion solo representa eventos de reingreso con datos de ubicacion de alta fidelidad. NO representa toda la poblacion reingresada.', 'This visualization only represents reentry events with high-fidelity location data. It does NOT represent the entire decayed population.')}
+                {tr('Esta visualización solo representa eventos de reingreso con datos de ubicación de alta fidelidad. NO representa toda la población reingresada.', 'This visualization only represents reentry events with high-fidelity location data. It does NOT represent the entire decayed population.')}
               </div>
               <div className="mt-5 flex items-center justify-end">
                 <button
@@ -1558,3 +1558,4 @@ function ReentryMapModule() {
 }
 
 export default memo(ReentryMapModule)
+

@@ -8,9 +8,9 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggle, mobil
   const { tr } = useI18n()
 
   const links = [
-    { to: '/', label: tr('Centro de mision', 'Mission Hub'), hint: tr('Inicio', 'Landing'), Icon: LayoutGrid },
+    { to: '/', label: tr('Centro de misión', 'Mission Hub'), hint: tr('Inicio', 'Landing'), Icon: LayoutGrid },
     { to: '/dashboard/orbit', label: tr('Monitor orbital', 'Orbit Monitor'), hint: tr('Globo 3D', '3D globe'), Icon: Globe },
-    { to: '/dashboard/map', label: tr('Monitor de reingresos', 'Reentry Monitor'), hint: tr('Mapa 2D + orbita 3D', '2D map + 3D orbit'), Icon: Map },
+    { to: '/dashboard/map', label: tr('Monitor de reingresos', 'Reentry Monitor'), hint: tr('Mapa 2D + órbita 3D', '2D map + 3D orbit'), Icon: Map },
     { to: '/dashboard/search', label: tr('Monitor de objetos', 'Object Monitor'), hint: tr('Objetos y debris', 'Objects and debris'), Icon: Search },
   ]
 
@@ -23,8 +23,8 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggle, mobil
           type="button"
           onClick={onToggle}
           className="group relative inline-flex items-center justify-center w-10 h-10 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition"
-          aria-label={tr('Abrir menu lateral', 'Open sidebar menu')}
-          title={tr('Abrir menu lateral', 'Open sidebar menu')}
+          aria-label={tr('Abrir menú lateral', 'Open sidebar menu')}
+          title={tr('Abrir menú lateral', 'Open sidebar menu')}
         >
           <img
             src={publicUrl('/img/icono.png')}
@@ -79,8 +79,8 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggle, mobil
             type="button"
             onClick={onToggle}
             className="inline-flex items-center justify-center w-10 h-10 rounded-xl border border-white/15 bg-white/5 text-white/85 hover:bg-white/10 transition"
-            aria-label={tr('Ocultar menu lateral', 'Hide sidebar menu')}
-            title={tr('Ocultar menu lateral', 'Hide sidebar menu')}
+            aria-label={tr('Ocultar menú lateral', 'Hide sidebar menu')}
+            title={tr('Ocultar menú lateral', 'Hide sidebar menu')}
           >
             <PanelLeftClose className="h-4 w-4" />
           </button>
@@ -136,3 +136,4 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggle, mobil
     </aside>
   )
 }
+

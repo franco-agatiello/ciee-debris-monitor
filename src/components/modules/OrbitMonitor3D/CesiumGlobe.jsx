@@ -656,7 +656,7 @@ const CesiumGlobe = ({ debrisList, onDebrisSelect }) => {
           {tr('Objetos visibles', 'Visible objects')}: <span className="text-cyan-400 font-bold">{visibleCount}</span> / {totalCount}
         </div>
 
-        <h3 className="text-xs uppercase tracking-widest text-gray-400 mb-2">{tr('Busqueda', 'Search')}</h3>
+        <h3 className="text-xs uppercase tracking-widest text-gray-400 mb-2">{tr('Búsqueda', 'Search')}</h3>
         <div className="mb-4 relative">
           <span className="absolute left-3 top-2.5 text-gray-400">🔍</span>
           <input
@@ -674,7 +674,7 @@ const CesiumGlobe = ({ debrisList, onDebrisSelect }) => {
                 setIsolatedSearchIndex(null);
               }}
               className="absolute right-2 top-1.5 h-7 w-7 rounded text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
-              title={tr('Limpiar busqueda', 'Clear search')}
+              title={tr('Limpiar búsqueda', 'Clear search')}
             >
               ✕
             </button>
@@ -696,7 +696,7 @@ const CesiumGlobe = ({ debrisList, onDebrisSelect }) => {
         </div>
 
         <div className="border-t border-white/10 pt-4 mt-4">
-          <h3 className="text-xs uppercase tracking-widest text-gray-400 mb-3">{tr('Pais', 'Country')}</h3>
+          <h3 className="text-xs uppercase tracking-widest text-gray-400 mb-3">{tr('País', 'Country')}</h3>
         </div>
         <div className="mb-6">
           <select
@@ -706,7 +706,7 @@ const CesiumGlobe = ({ debrisList, onDebrisSelect }) => {
             }}
             className="w-full bg-black/40 border border-white/10 rounded-md px-3 py-2 text-sm outline-none focus:border-cyan-400"
           >
-            <option value="">{tr('Todos los paises', 'All countries')}</option>
+            <option value="">{tr('Todos los países', 'All countries')}</option>
             {countryList.map((country) => (
               <option key={country} value={country}>
                 {country}
@@ -742,7 +742,7 @@ const CesiumGlobe = ({ debrisList, onDebrisSelect }) => {
 
         <div className="border-t border-white/10 pt-4 mt-4">
           <h3 className="text-xs uppercase tracking-widest text-gray-400 mb-3">
-            {tr('Anios', 'Years')}: {yearRange[0]} - {yearRange[1]}
+            {tr('Años', 'Years')}: {yearRange[0]} - {yearRange[1]}
           </h3>
         </div>
         <div className="relative mb-6">
@@ -900,8 +900,8 @@ const CesiumGlobe = ({ debrisList, onDebrisSelect }) => {
           <p className="font-bold text-cyan-400">{hoverInfo.data.name}</p>
           <p className="text-xs text-gray-300">NORAD: {hoverInfo.data.noradId}</p>
           <p className="text-xs text-gray-300">{tr('Tipo', 'Type')}: {hoverInfo.data.type}</p>
-          <p className="text-xs text-gray-300">{tr('Pais', 'Country')}: {hoverInfo.data.country}</p>
-          <p className="text-xs text-gray-300">{tr('Anio', 'Year')}: {hoverInfo.data.year}</p>
+          <p className="text-xs text-gray-300">{tr('País', 'Country')}: {hoverInfo.data.country}</p>
+          <p className="text-xs text-gray-300">{tr('Año', 'Year')}: {hoverInfo.data.year}</p>
         </div>
       )}
     </div>
@@ -909,3 +909,4 @@ const CesiumGlobe = ({ debrisList, onDebrisSelect }) => {
 };
 
 export default CesiumGlobe;
+
