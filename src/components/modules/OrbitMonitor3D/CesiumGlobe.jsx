@@ -742,7 +742,7 @@ const CesiumGlobe = ({ debrisList, onDebrisSelect }) => {
 
         <div className="border-t border-white/10 pt-4 mt-4">
           <h3 className="text-xs uppercase tracking-widest text-gray-400 mb-3">
-            {tr('Años', 'Years')}: {yearRange[0]} - {yearRange[1]}
+            {tr('Lanzamiento', 'Launch')}: {yearRange[0]} - {yearRange[1]}
           </h3>
         </div>
         <div className="relative mb-6">
