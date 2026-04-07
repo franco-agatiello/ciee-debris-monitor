@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:local": "vite --host 0.0.0.0 --port 5173 --strictPort",
     "precompute:analytics": "node scripts/precompute-analytics.mjs",
     "build": "npm run precompute:analytics && vite build",
     "preview": "vite preview",
