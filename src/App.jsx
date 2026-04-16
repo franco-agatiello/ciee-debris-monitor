@@ -9,6 +9,7 @@ const DashboardLayout = lazy(() => import('./layouts/DashboardLayout.jsx'))
 
 const ReentryMapModule = lazy(() => import('./components/modules/ReentryMapModule/ReentryMapModule.jsx'))
 const OrbitMonitor3D = lazy(() => import('./components/modules/OrbitMonitor3D/OrbitMonitor3D.jsx'))
+const OrbitalRegimesGuide = lazy(() => import('./components/modules/OrbitMonitor3D/OrbitalRegimesGuide.jsx'))
 const ObjectSearchModule = lazy(() => import('./components/modules/ObjectSearch/ObjectSearchModule.jsx'))
 
 function AppRoutes() {
@@ -26,6 +27,7 @@ function AppRoutes() {
               <Route path="search" element={<ObjectSearchModule />} />
               <Route path="map" element={<ReentryMapModule />} />
               <Route path="orbit" element={<OrbitMonitor3D />} />
+              <Route path="orbit/guide" element={<OrbitalRegimesGuide />} />
             </Route>
 
             {/* Back-compat redirects */}
@@ -45,7 +47,10 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <BrowserRouter basename={import.meta.env.BASE_URL}>
+    <BrowserRouter
+      basename={import.meta.env.BASE_URL}
+      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+    >
       <AppRoutes />
     </BrowserRouter>
   )

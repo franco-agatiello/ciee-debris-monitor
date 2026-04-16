@@ -276,14 +276,18 @@ function formatMassCompact(n) {
   return `${Math.round(n)}`
 }
 
-function GlassModal({ open, title, children, blockClose = false, onClose }) {
+function GlassModal({ open, title, children, blockClose = false, fitSidebarHeight = false, onClose }) {
   const { tr } = useI18n()
 
   return (
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-[99999] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          className={`fixed z-[99999] flex justify-center ${
+            fitSidebarHeight
+              ? 'inset-0 items-stretch px-3 sm:px-4 py-4'
+              : 'inset-0 items-start sm:items-center p-3 sm:p-4 overflow-y-auto'
+          }`}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -298,7 +302,11 @@ function GlassModal({ open, title, children, blockClose = false, onClose }) {
             exit={{ opacity: 0 }}
           />
           <motion.div
-            className="relative my-4 sm:my-0 w-full max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto bg-black/50 backdrop-blur-xl border border-white/10 rounded-2xl p-5 shadow-2xl"
+            className={`relative w-full max-w-2xl bg-black/50 backdrop-blur-xl border border-white/10 rounded-2xl p-5 shadow-2xl ${
+              fitSidebarHeight
+                ? 'h-full max-h-[calc(100dvh-2rem)] overflow-y-auto'
+                : 'my-4 sm:my-0 max-h-[calc(100dvh-2rem)] overflow-y-auto'
+            }`}
             initial={{ opacity: 0, y: 18, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 18, scale: 0.98 }}
@@ -477,9 +485,8 @@ function ReentryMapModule() {
 
   useEffect(() => {
     const onChange = () => {
-      const el = mapHostRef.current
       const fsEl = document.fullscreenElement || document.webkitFullscreenElement
-      setIsFullscreen(Boolean(el && fsEl === el))
+      setIsFullscreen(Boolean(fsEl))
       const map = mapRef.current
       if (map) setTimeout(() => map.invalidateSize(), 50)
     }
@@ -493,12 +500,10 @@ function ReentryMapModule() {
   }, [])
 
   const toggleFullscreen = async () => {
-    const el = mapHostRef.current
-    if (!el) return
     try {
       const fsEl = document.fullscreenElement || document.webkitFullscreenElement
       if (fsEl) await (document.exitFullscreen?.() || document.webkitExitFullscreen?.())
-      else await (el.requestFullscreen?.() || el.webkitRequestFullscreen?.())
+      else await (document.documentElement.requestFullscreen?.() || document.documentElement.webkitRequestFullscreen?.())
     } catch {
       // ignore
     }
@@ -647,6 +652,10 @@ function ReentryMapModule() {
     const constellationFilter = selectedConstellation
 
     const massFilterActive = !(showMassLight && showMassMedium && showMassHeavy)
+    const yearFilterActive =
+      from != null &&
+      to != null &&
+      (from > yearMin || to < yearMax)
 
     return points.filter((p) => {
       // Country filter semantics:
@@ -656,7 +665,7 @@ function ReentryMapModule() {
       if (!p.country) return false
       if (!countries.has(p.country)) return false
 
-      if (from != null || to != null) {
+      if (yearFilterActive) {
         if (p.year == null) return false
         if (from != null && p.year < from) return false
         if (to != null && p.year > to) return false
@@ -688,6 +697,8 @@ function ReentryMapModule() {
     selectedCountries,
     yearFrom,
     yearTo,
+    yearMin,
+    yearMax,
     showPayload,
     showRocket,
     showDebris,
@@ -705,8 +716,6 @@ function ReentryMapModule() {
     if (!q) return allCountries
     return allCountries.filter((c) => c.toLowerCase().includes(q))
   }, [allCountries, countrySearch])
-
-  const counterText = loading ? tr('cargando…', 'loading…') : `${filteredPoints.length}`
 
   const reportData = useMemo(() => {
     const visibleCount = filteredPoints.length
@@ -1118,39 +1127,32 @@ function ReentryMapModule() {
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     {isFullscreen ? (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      <>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4l5 5" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9h3V6" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 4l-5 5" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9h-3V6" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 20l5-5" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 15h3v3" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 20l-5-5" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 15h-3v3" />
+                      </>
                     ) : (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6v4m12-4h4v4m0 6v4h-4m-12 0v4h4" />
+                      <>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9L4 4" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4H4v3" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 9l5-5" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 4h3v3" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 15l-5 5" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 17v3h3" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l5 5" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h3v-3" />
+                      </>
                     )}
                   </svg>
                 </button>
 
-                <div className="rounded-2xl px-4 py-3 bg-[#02040a]/95 backdrop-blur-md border border-white/10 shadow-2xl">
-                  <div className="text-xs text-gray-200">{tr('Objetos visualizados', 'Visualized Objects')}</div>
-                  <div className="mono text-lg font-extrabold">{counterText}</div>
-                  <div className="mt-3 flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setMode('points')}
-                      className={`px-2.5 py-2 rounded-lg border text-xs font-extrabold transition ${
-                        mode === 'points' ? 'bg-white/10 border-white/20' : 'bg-white/5 border-white/10 hover:bg-white/10'
-                      }`}
-                      title={tr('Mostrar puntos', 'Show points')}
-                    >
-                      {tr('Puntos', 'Points')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setMode('heat')}
-                      className={`px-2.5 py-2 rounded-lg border text-xs font-extrabold transition ${
-                        mode === 'heat' ? 'bg-white/10 border-white/20' : 'bg-white/5 border-white/10 hover:bg-white/10'
-                      }`}
-                      title={tr('Mostrar calor', 'Show heat')}
-                    >
-                      {tr('Calor', 'Heat')}
-                    </button>
-                  </div>
-                </div>
+                
               </div>
 
               <div className="absolute bottom-4 right-4 pointer-events-auto">
@@ -1181,8 +1183,35 @@ function ReentryMapModule() {
                 <div className="h-full flex flex-col rounded-2xl overflow-hidden bg-[#02040a]/95 backdrop-blur-md border border-white/10 shadow-2xl text-gray-200">
                   <div className="px-4 py-4 border-b border-white/10 flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-sm font-extrabold text-white">{tr('Filtros', 'Filters')}</div>
-                      <div className="text-xs text-gray-200 mt-1">{tr('Fecha · Tipo · País · Masa · Constelación', 'Date · Type · Country · Mass · Constellation')}</div>
+                      <div className="text-xs text-gray-300 mt-1">
+                        {tr('Objetos visibles', 'Visible objects')}: <span className="text-cyan-400 font-bold">{filteredPoints.length}</span> / {points.length}
+                      </div>
+                      <div className="mt-2 inline-flex items-center rounded-lg border border-white/10 bg-black/40 p-1 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setMode('points')}
+                          className={`px-2 py-1 rounded-md text-[11px] font-extrabold transition ${
+                            mode === 'points'
+                              ? 'bg-white/10 text-white border border-white/20'
+                              : 'text-gray-300 hover:text-white hover:bg-white/5 border border-transparent'
+                          }`}
+                          title={tr('Mostrar puntos', 'Show points')}
+                        >
+                          {tr('Puntos', 'Points')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setMode('heat')}
+                          className={`px-2 py-1 rounded-md text-[11px] font-extrabold transition ${
+                            mode === 'heat'
+                              ? 'bg-white/10 text-white border border-white/20'
+                              : 'text-gray-300 hover:text-white hover:bg-white/5 border border-transparent'
+                          }`}
+                          title={tr('Mostrar calor', 'Show heat')}
+                        >
+                          {tr('Calor', 'Heat')}
+                        </button>
+                      </div>
                     </div>
                     <button
                       type="button"
@@ -1197,7 +1226,7 @@ function ReentryMapModule() {
                   </div>
 
                   <div className="flex-1 overflow-auto">
-                    <FilterAccordion id="date" title={tr('📅 Rango de fechas', '📅 Date Range')} openId={openFilterId} setOpenId={setOpenFilterId}>
+                    <FilterAccordion id="date" title={tr('Rango de fechas', 'Date Range')} openId={openFilterId} setOpenId={setOpenFilterId}>
                       <div className="text-xs text-gray-200">{tr('Rango de años', 'Year range')}</div>
                       <div className="mt-2 flex items-center justify-between gap-3 text-sm">
                         <div className="mono">{yearFrom ?? yearMin}</div>
@@ -1259,7 +1288,7 @@ function ReentryMapModule() {
                       </div>
                     </FilterAccordion>
 
-                    <FilterAccordion id="type" title={tr('🧩 Tipo de objeto', '🧩 Object Type')} openId={openFilterId} setOpenId={setOpenFilterId}>
+                    <FilterAccordion id="type" title={tr('Tipo de objeto', 'Object Type')} openId={openFilterId} setOpenId={setOpenFilterId}>
                       <div className="grid grid-cols-1 gap-2">
                         <label className="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 bg-black/40 hover:bg-black/50 cursor-pointer">
                           <input type="checkbox" checked={showPayload} onChange={(e) => setShowPayload(e.target.checked)} />
@@ -1280,7 +1309,7 @@ function ReentryMapModule() {
                       </div>
                     </FilterAccordion>
 
-                    <FilterAccordion id="country" title={tr('🌎 País', '🌎 Country')} openId={openFilterId} setOpenId={setOpenFilterId}>
+                    <FilterAccordion id="country" title={tr('País', 'Country')} openId={openFilterId} setOpenId={setOpenFilterId}>
                       <input
                         value={countrySearch}
                         onChange={(e) => setCountrySearch(e.target.value)}
@@ -1336,7 +1365,7 @@ function ReentryMapModule() {
                       ) : null}
                     </FilterAccordion>
 
-                    <FilterAccordion id="mass" title={tr('⚖️ Categoría de masa', '⚖️ Mass Category')} openId={openFilterId} setOpenId={setOpenFilterId}>
+                    <FilterAccordion id="mass" title={tr('Categoría de masa', 'Mass Category')} openId={openFilterId} setOpenId={setOpenFilterId}>
                       <div className="grid grid-cols-1 gap-2">
                         <label className="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 bg-black/40 hover:bg-black/50 cursor-pointer">
                           <input type="checkbox" checked={showMassLight} onChange={(e) => setShowMassLight(e.target.checked)} />
@@ -1356,7 +1385,7 @@ function ReentryMapModule() {
                       </div>
                     </FilterAccordion>
 
-                    <FilterAccordion id="constellation" title={tr('🛰️ Constelación', '🛰️ Constellation')} openId={openFilterId} setOpenId={setOpenFilterId}>
+                    <FilterAccordion id="constellation" title={tr('Constelación', 'Constellation')} openId={openFilterId} setOpenId={setOpenFilterId}>
                       <select
                         value={selectedConstellation}
                         onChange={(e) => setSelectedConstellation(e.target.value)}
@@ -1373,7 +1402,7 @@ function ReentryMapModule() {
                     </FilterAccordion>
 
                     {trackMeta ? (
-                      <FilterAccordion id="track" title={tr('🧭 Traza en tierra', '🧭 Ground Track')} openId={openFilterId} setOpenId={setOpenFilterId}>
+                      <FilterAccordion id="track" title={tr('Traza en tierra', 'Ground Track')} openId={openFilterId} setOpenId={setOpenFilterId}>
                         <div className="text-sm text-gray-200">
                           NORAD <span className="mono">{trackMeta.norad || '—'}</span>
                         </div>
@@ -1426,6 +1455,7 @@ function ReentryMapModule() {
             <GlassModal
               open={reportOpen}
               title={tr('Informe de selección', 'Selection report')}
+              fitSidebarHeight
               onClose={() => setReportOpen(false)}
             >
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">

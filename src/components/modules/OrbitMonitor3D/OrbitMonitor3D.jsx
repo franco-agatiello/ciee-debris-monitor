@@ -43,7 +43,7 @@ export default function OrbitMonitor3D() {
   }, []);
 
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'fixed', inset: 0, zIndex: 0, background: '#02040a' }}>
+    <div style={{ width: '100%', height: '100%', position: 'relative', background: '#02040a' }}>
       <CesiumGlobe debrisList={debrisList} onDebrisSelect={handleDebrisSelect} />
     </div>
   );

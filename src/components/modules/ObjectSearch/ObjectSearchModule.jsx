@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Globe from 'react-globe.gl'
 import * as satellite from 'satellite.js'
 import * as THREE from 'three'
-import { Search, Database, Globe as GlobeIcon, Orbit, Maximize2, Minimize2 } from 'lucide-react'
+import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from 'recharts'
+import { Search, Database, Globe as GlobeIcon, Orbit, Maximize2, Minimize2, AlertTriangle } from 'lucide-react'
 import { loadCsv, toNumber, toStringSafe } from '../../../utils/csv.js'
 import { COUNTRY_NAMES } from '../../../utils/countryNames.js'
 import { useDeferredRender } from '../../../hooks/useDeferredRender.js'
@@ -19,6 +20,9 @@ const SORT_MODE_OLDEST = 'oldest'
 const SORT_MODE_ALPHA = 'alpha'
 const PREVIEW_MIN_ALTITUDE = 3.2
 const PREVIEW_MAX_ALTITUDE = 20
+const ORBITAL_SNAPSHOT_REFRESH_MS = 1500
+const ORBITAL_HISTORY_POINTS = 181
+const ORBITAL_HISTORY_REFRESH_MS = 30000
 const STARFIELD_NEAR_MIN_SCALE = 10
 const STARFIELD_NEAR_MAX_SCALE = 24
 const STARFIELD_FAR_MIN_SCALE = 22
@@ -354,6 +358,408 @@ function fmtDate(v) {
   return s || '—'
 }
 
+function fmtSigned(v, d = 2) {
+  const n = Number(v)
+  if (!Number.isFinite(n)) return '—'
+  const abs = Math.abs(n).toFixed(d)
+  return `${n >= 0 ? '+' : '-'}${abs}`
+}
+
+function fmtUtcIso(value) {
+  const d = value instanceof Date ? value : new Date(value)
+  if (!Number.isFinite(d.getTime())) return '—'
+  return d.toISOString().replace('T', ' ').replace('Z', ' UTC')
+}
+
+function radiansToDegrees(rad) {
+  const n = Number(rad)
+  if (!Number.isFinite(n)) return Number.NaN
+  return n * (180 / Math.PI)
+}
+
+function normalizeAngleDeg(deg) {
+  const n = Number(deg)
+  if (!Number.isFinite(n)) return Number.NaN
+  const out = ((n % 360) + 360) % 360
+  return out
+}
+
+function computeTrueAnomalyDeg(positionEci, velocityEci) {
+  const rx = Number(positionEci?.x)
+  const ry = Number(positionEci?.y)
+  const rz = Number(positionEci?.z)
+  const vx = Number(velocityEci?.x)
+  const vy = Number(velocityEci?.y)
+  const vz = Number(velocityEci?.z)
+  if (![rx, ry, rz, vx, vy, vz].every(Number.isFinite)) return Number.NaN
+
+  const rVec = new THREE.Vector3(rx, ry, rz)
+  const vVec = new THREE.Vector3(vx, vy, vz)
+  const r = rVec.length()
+  const v = vVec.length()
+  if (!Number.isFinite(r) || !Number.isFinite(v) || r <= 0 || v <= 0) return Number.NaN
+
+  const mu = 398600.4418
+  const hVec = new THREE.Vector3().crossVectors(rVec, vVec)
+  const eVec = new THREE.Vector3()
+    .crossVectors(vVec, hVec)
+    .multiplyScalar(1 / mu)
+    .sub(rVec.clone().multiplyScalar(1 / r))
+  const e = eVec.length()
+  if (!Number.isFinite(e) || e < 1e-8) return Number.NaN
+
+  const cosNu = THREE.MathUtils.clamp(eVec.dot(rVec) / (e * r), -1, 1)
+  let nu = Math.acos(cosNu)
+  if (rVec.dot(vVec) < 0) nu = 2 * Math.PI - nu
+  return normalizeAngleDeg(radiansToDegrees(nu))
+}
+
+function computeOsculatingElements(positionEci, velocityEci) {
+  const rx = Number(positionEci?.x)
+  const ry = Number(positionEci?.y)
+  const rz = Number(positionEci?.z)
+  const vx = Number(velocityEci?.x)
+  const vy = Number(velocityEci?.y)
+  const vz = Number(velocityEci?.z)
+  if (![rx, ry, rz, vx, vy, vz].every(Number.isFinite)) return null
+
+  const mu = 398600.4418
+  const rVec = new THREE.Vector3(rx, ry, rz)
+  const vVec = new THREE.Vector3(vx, vy, vz)
+  const r = rVec.length()
+  const v2 = vVec.lengthSq()
+  if (!Number.isFinite(r) || r <= 0 || !Number.isFinite(v2)) return null
+
+  const hVec = new THREE.Vector3().crossVectors(rVec, vVec)
+  const h = hVec.length()
+  if (!Number.isFinite(h) || h <= 0) return null
+
+  const kHat = new THREE.Vector3(0, 0, 1)
+  const nVec = new THREE.Vector3().crossVectors(kHat, hVec)
+  const n = nVec.length()
+
+  const eVec = new THREE.Vector3()
+    .crossVectors(vVec, hVec)
+    .multiplyScalar(1 / mu)
+    .sub(rVec.clone().multiplyScalar(1 / r))
+  const e = eVec.length()
+
+  const energy = v2 / 2 - mu / r
+  const semiMajorAxisKm = Number.isFinite(energy) && Math.abs(energy) > 1e-12 ? -mu / (2 * energy) : Number.NaN
+
+  const inclinationDeg = radiansToDegrees(Math.acos(THREE.MathUtils.clamp(hVec.z / h, -1, 1)))
+
+  let raanDeg = Number.NaN
+  if (n > 1e-8) {
+    let raan = Math.acos(THREE.MathUtils.clamp(nVec.x / n, -1, 1))
+    if (nVec.y < 0) raan = 2 * Math.PI - raan
+    raanDeg = normalizeAngleDeg(radiansToDegrees(raan))
+  }
+
+  let argPerigeeDeg = Number.NaN
+  if (n > 1e-8 && e > 1e-8) {
+    let argp = Math.acos(THREE.MathUtils.clamp(nVec.dot(eVec) / (n * e), -1, 1))
+    if (eVec.z < 0) argp = 2 * Math.PI - argp
+    argPerigeeDeg = normalizeAngleDeg(radiansToDegrees(argp))
+  }
+
+  let periodMin = Number.NaN
+  if (Number.isFinite(semiMajorAxisKm) && semiMajorAxisKm > 0) {
+    periodMin = (2 * Math.PI * Math.sqrt(Math.pow(semiMajorAxisKm, 3) / mu)) / 60
+  }
+
+  return {
+    semiMajorAxisKm,
+    eccentricity: e,
+    inclinationDeg,
+    raanDeg,
+    argPerigeeDeg,
+    periodMin,
+  }
+}
+
+function computeAdaptiveDomain(data, key) {
+  const values = []
+  for (const row of data || []) {
+    const n = Number(row?.[key])
+    if (Number.isFinite(n)) values.push(n)
+  }
+
+  if (!values.length) return ['auto', 'auto']
+
+  let min = values[0]
+  let max = values[0]
+  for (let i = 1; i < values.length; i += 1) {
+    const v = values[i]
+    if (v < min) min = v
+    if (v > max) max = v
+  }
+
+  // When series is almost flat, force a tiny symmetric window so variation remains visible.
+  if (Math.abs(max - min) < 1e-12) {
+    const base = Math.max(Math.abs(min), 1)
+    const pad = Math.max(base * 0.02, 1e-6)
+    return [min - pad, max + pad]
+  }
+
+  const span = max - min
+  const pad = Math.max(span * 0.1, 1e-9)
+  return [min - pad, max + pad]
+}
+
+function buildOrbitalHistorySeries(tle1, tle2, windowDays = 180) {
+  try {
+    const satrec = satellite.twoline2satrec(String(tle1 || '').trim(), String(tle2 || '').trim())
+    if (!satrec || satrec.error) return []
+
+    const safeWindowDays = clamp(Number(windowDays) || 180, 90, 365)
+    const halfWindowDays = safeWindowDays / 2
+    const stepDays = safeWindowDays / Math.max(1, ORBITAL_HISTORY_POINTS - 1)
+    const now = Date.now()
+
+    const series = []
+    for (let i = 0; i < ORBITAL_HISTORY_POINTS; i += 1) {
+      const deltaDays = -halfWindowDays + i * stepDays
+      const time = new Date(now + deltaDays * 24 * 60 * 60000)
+      const pv = satellite.propagate(satrec, time)
+      if (!pv?.position || !pv?.velocity) continue
+
+      const gmst = satellite.gstime(time)
+      const geodetic = satellite.eciToGeodetic(pv.position, gmst)
+      const osc = computeOsculatingElements(pv.position, pv.velocity)
+      if (!osc) continue
+
+      const speedKmS = Math.hypot(
+        Number(pv.velocity.x),
+        Number(pv.velocity.y),
+        Number(pv.velocity.z),
+      )
+
+      const latDeg = satellite.degreesLat(geodetic.latitude)
+      const lonDeg = satellite.degreesLong(geodetic.longitude)
+
+      if (!Number.isFinite(geodetic.height) || !Number.isFinite(speedKmS) || !Number.isFinite(latDeg) || !Number.isFinite(lonDeg)) {
+        continue
+      }
+
+      series.push({
+        tDay: Number(deltaDays.toFixed(2)),
+        dateIso: time.toISOString(),
+        altitudeKm: Number(geodetic.height),
+        speedKmS,
+        latDeg,
+        lonDeg,
+        periodMin: osc.periodMin,
+        eccentricity: osc.eccentricity,
+        inclinationDeg: osc.inclinationDeg,
+        raanDeg: osc.raanDeg,
+        argPerigeeDeg: osc.argPerigeeDeg,
+        semiMajorAxisKm: osc.semiMajorAxisKm,
+      })
+    }
+
+    return series
+  } catch {
+    return []
+  }
+}
+
+function OrbitalHistoryCharts({ selected, tr }) {
+  const hasTle = Boolean(toStringSafe(selected?.tle1) && toStringSafe(selected?.tle2))
+  const isReentered = Boolean(selected?.sources?.reentry || safeParseDate(selected?.decayDate))
+  const [windowDays, setWindowDays] = useState(180)
+  const [tick, setTick] = useState(0)
+
+  useEffect(() => {
+    if (!hasTle || isReentered) return () => {}
+    const id = window.setInterval(() => setTick((v) => v + 1), ORBITAL_HISTORY_REFRESH_MS)
+    return () => window.clearInterval(id)
+  }, [hasTle, isReentered, selected?.id])
+
+  const series = useMemo(() => {
+    if (!hasTle || isReentered) return []
+    return buildOrbitalHistorySeries(selected.tle1, selected.tle2, windowDays)
+  }, [hasTle, isReentered, selected?.id, selected?.tle1, selected?.tle2, windowDays, tick])
+
+  const chartRows = useMemo(
+    () => [
+      {
+        key: 'altitude',
+        title: tr('Altitud vs tiempo', 'Altitude vs time'),
+        dataKey: 'altitudeKm',
+        color: '#22d3ee',
+        unit: 'km',
+        digits: 2,
+        legend: tr('Altitud', 'Altitude'),
+      },
+      {
+        key: 'raan',
+        title: tr('RAAN vs tiempo', 'RAAN vs time'),
+        dataKey: 'raanDeg',
+        color: '#60a5fa',
+        unit: '°',
+        digits: 2,
+        legend: 'RAAN',
+      },
+      {
+        key: 'argPerigee',
+        title: tr('Argumento del perigeo vs tiempo', 'Argument of perigee vs time'),
+        dataKey: 'argPerigeeDeg',
+        color: '#f472b6',
+        unit: '°',
+        digits: 2,
+        legend: tr('Arg. perigeo', 'Arg. perigee'),
+      },
+      {
+        key: 'inclination',
+        title: tr('Inclinación vs tiempo', 'Inclination vs time'),
+        dataKey: 'inclinationDeg',
+        color: '#34d399',
+        unit: '°',
+        digits: 4,
+        legend: tr('Inclinación', 'Inclination'),
+      },
+      {
+        key: 'eccentricity',
+        title: tr('Excentricidad vs tiempo', 'Eccentricity vs time'),
+        dataKey: 'eccentricity',
+        color: '#f59e0b',
+        unit: '',
+        digits: 6,
+        legend: tr('Excentricidad', 'Eccentricity'),
+      },
+      {
+        key: 'period',
+        title: tr('Período vs tiempo', 'Period vs time'),
+        dataKey: 'periodMin',
+        color: '#a78bfa',
+        unit: 'min',
+        digits: 3,
+        legend: tr('Período', 'Period'),
+      },
+      {
+        key: 'speed',
+        title: tr('Velocidad vs tiempo', 'Speed vs time'),
+        dataKey: 'speedKmS',
+        color: '#22d3ee',
+        unit: 'km/s',
+        digits: 4,
+        legend: tr('Velocidad', 'Speed'),
+      },
+    ],
+    [tr],
+  )
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-black/25 p-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-white/75 text-[11px] mb-2">
+        <div className="flex items-center gap-2">
+          <Orbit className="h-3.5 w-3.5" />
+          {tr('Parámetros orbitales en función del tiempo', 'Orbital parameters over time')}
+        </div>
+        <MethodologyNotice tr={tr} />
+      </div>
+
+      {!isReentered ? (
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <span className="text-[11px] text-white/60">{tr('Escala temporal', 'Time scale')}:</span>
+        {[90, 180, 365].map((days) => (
+          <button
+            key={days}
+            type="button"
+            onClick={() => setWindowDays(days)}
+            className={`px-2 py-1 rounded-md border text-[11px] transition ${
+              windowDays === days
+                ? 'bg-cyan-400/10 border-cyan-300/40 text-cyan-100'
+                : 'bg-white/5 border-white/15 text-white/80 hover:bg-white/10'
+            }`}
+          >
+            {days === 90
+              ? tr('3 meses', '3 months')
+              : days === 180
+                ? tr('6 meses', '6 months')
+                : tr('12 meses', '12 months')}
+          </button>
+        ))}
+      </div>
+      ) : null}
+
+      {isReentered ? (
+        <div className="text-xs text-white/55 rounded-md border border-white/10 bg-black/20 px-2 py-2">
+          {tr('No se pudo construir la serie temporal para este objeto.', 'Could not build a time series for this object.')}
+        </div>
+      ) : !hasTle ? (
+        <div className="text-xs text-white/55 rounded-md border border-white/10 bg-black/20 px-2 py-2">
+          {tr('No hay TLE suficiente para graficar evolución temporal.', 'No valid TLE available for time-series charts.')}
+        </div>
+      ) : !series.length ? (
+        <div className="text-xs text-white/55 rounded-md border border-white/10 bg-black/20 px-2 py-2">
+          {tr('No se pudo construir la serie temporal para este objeto.', 'Could not build a time series for this object.')}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {chartRows.map((row) => (
+            <div key={row.key} className="rounded-lg border border-white/10 bg-black/20 p-2">
+              <div className="text-[11px] text-white/70 mb-1">{row.title}</div>
+              <div className="h-[180px]">
+                {(() => {
+                  const leftDomain = computeAdaptiveDomain(series, row.dataKey)
+                  return (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={series} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.25)" />
+                    <XAxis
+                      dataKey="tDay"
+                      tick={{ fill: '#94a3b8', fontSize: 11 }}
+                      tickFormatter={(v) => `${v}d`}
+                      label={{ value: tr('Tiempo relativo (días)', 'Relative time (days)'), position: 'insideBottomRight', offset: -4, fill: '#94a3b8', fontSize: 10 }}
+                    />
+                    <YAxis
+                      yAxisId="left"
+                      domain={leftDomain}
+                      tick={{ fill: '#94a3b8', fontSize: 11 }}
+                      tickFormatter={(v) => `${Number(v).toFixed(row.digits)}`}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: 'rgba(2,6,23,0.94)',
+                        border: '1px solid rgba(148,163,184,0.35)',
+                        borderRadius: '8px',
+                        color: '#e2e8f0',
+                      }}
+                      labelFormatter={(_label, payload) => {
+                        const d = payload?.[0]?.payload?.dateIso
+                        if (!d) return tr('Sin fecha', 'No date')
+                        const date = new Date(d)
+                        return Number.isFinite(date.getTime()) ? date.toUTCString() : String(d)
+                      }}
+                      formatter={(value) => {
+                        const n = Number(value)
+                        return [`${Number.isFinite(n) ? n.toFixed(row.digits) : '—'} ${row.unit}`, row.legend || row.title]
+                      }}
+                    />
+                    <Line
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey={row.dataKey}
+                      stroke={row.color}
+                      dot={false}
+                      strokeWidth={2}
+                      isAnimationActive={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+                  )
+                })()}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function getLaunchTs(row) {
   const launchTs = safeParseDate(row?.launchDate)?.getTime() ?? -1
   return launchTs
@@ -493,6 +899,27 @@ function Field({ label, value, mono = false }) {
     <div className="rounded-lg border border-white/10 bg-black/25 px-2 py-1.5">
       <div className="text-[10px] text-white/55">{label}</div>
       <div className={`mt-0.5 text-[14px] leading-tight text-white/90 ${mono ? 'mono break-all' : ''}`}>{value || '—'}</div>
+    </div>
+  )
+}
+
+function MethodologyNotice({ tr }) {
+  const text = tr(
+    'Nota metodológica: los valores mostrados son estimaciones con fines orientativos y académicos, obtenidas por propagación numérica a partir del último TLE disponible. No constituyen una determinación operacional en tiempo real y pueden diferir del estado orbital efectivo, especialmente porque no se incorpora un modelado completo de perturbaciones externas ni maniobras.',
+    'Methodological note: displayed values are indicative, academic estimates obtained by numerical propagation from the latest available TLE. They are not an operational real-time determination and may differ from the effective orbital state, especially because a complete model of external perturbations and maneuvers is not included.',
+  )
+
+  return (
+    <div className="relative group">
+      <div
+        className="inline-flex items-center justify-center rounded-md border border-amber-300/30 bg-amber-400/10 p-1.5 text-amber-100 cursor-help"
+        aria-label={tr('Aviso metodológico', 'Methodology note')}
+      >
+        <AlertTriangle className="h-3.5 w-3.5" />
+      </div>
+      <div className="pointer-events-none absolute right-0 top-full mt-2 hidden group-hover:block z-[90] w-[340px] max-w-[80vw] rounded-md border border-amber-300/25 bg-[#0a0f1dcc] px-3 py-2 text-[11px] leading-relaxed text-amber-50 shadow-xl backdrop-blur-md">
+        {text}
+      </div>
     </div>
   )
 }
@@ -701,7 +1128,7 @@ function OrbitPreview({ selected, tr }) {
 
   const previewCanvas = (
     <div className="relative h-full w-full flex items-center justify-center">
-      <div style={globeFrameStyle} className={`relative shrink-0 ${isReentered ? 'filter grayscale contrast-75 brightness-90 saturate-0' : ''}`}>
+      <div style={globeFrameStyle} className={`relative shrink-0 ${isReentered ? 'filter grayscale contrast-90' : ''}`}>
         <Globe
           ref={globeRef}
           key={`${selected?.id || 'x'}-${globeWidth}x${globeHeight}-${isExpanded ? 'expanded' : 'compact'}`}
@@ -800,6 +1227,187 @@ function OrbitPreview({ selected, tr }) {
         </div>
       ) : null}
     </>
+  )
+}
+
+function OrbitalParamsTables({ selected, tr }) {
+  const [snapshot, setSnapshot] = useState(null)
+  const hasTle = Boolean(toStringSafe(selected?.tle1) && toStringSafe(selected?.tle2))
+  const isReentered = Boolean(selected?.sources?.reentry || safeParseDate(selected?.decayDate))
+
+  useEffect(() => {
+    const tle1 = toStringSafe(selected?.tle1)
+    const tle2 = toStringSafe(selected?.tle2)
+    if (!tle1 || !tle2 || isReentered) {
+      setSnapshot(null)
+      return () => {}
+    }
+
+    let cancelled = false
+
+    const updateSnapshot = () => {
+      try {
+        const satrec = satellite.twoline2satrec(tle1, tle2)
+        if (!satrec || satrec.error) return
+
+        const now = new Date()
+        const pv = satellite.propagate(satrec, now)
+        if (!pv?.position || !pv?.velocity) return
+
+        const gmst = satellite.gstime(now)
+        const geodetic = satellite.eciToGeodetic(pv.position, gmst)
+
+        const meanMotionRevPerDay = Number.isFinite(satrec.no)
+          ? (satrec.no * 1440) / (2 * Math.PI)
+          : Number.NaN
+        const periodMin = Number.isFinite(meanMotionRevPerDay) && meanMotionRevPerDay > 0
+          ? 1440 / meanMotionRevPerDay
+          : Number.NaN
+
+        const eccentricity = Number(satrec.ecco)
+        const semiMajorAxisEr = Number(satrec.a)
+        const perigeeKm = Number.isFinite(semiMajorAxisEr) && Number.isFinite(eccentricity)
+          ? (semiMajorAxisEr * (1 - eccentricity) - 1) * EARTH_RADIUS_KM
+          : Number.NaN
+        const apogeeKm = Number.isFinite(semiMajorAxisEr) && Number.isFinite(eccentricity)
+          ? (semiMajorAxisEr * (1 + eccentricity) - 1) * EARTH_RADIUS_KM
+          : Number.NaN
+
+        const speedKmS = Math.hypot(
+          Number(pv.velocity.x),
+          Number(pv.velocity.y),
+          Number(pv.velocity.z),
+        )
+
+        if (!cancelled) {
+          setSnapshot({
+            timestamp: now,
+            latDeg: satellite.degreesLat(geodetic.latitude),
+            lonDeg: satellite.degreesLong(geodetic.longitude),
+            altitudeKm: Number(geodetic.height),
+            speedKmS,
+            eciXKm: Number(pv.position.x),
+            eciYKm: Number(pv.position.y),
+            eciZKm: Number(pv.position.z),
+            meanMotionRevPerDay,
+            periodMin,
+            inclinationDeg: Number(satrec.inclo) * (180 / Math.PI),
+            raanDeg: normalizeAngleDeg(radiansToDegrees(satrec.nodeo)),
+            argPerigeeDeg: normalizeAngleDeg(radiansToDegrees(satrec.argpo)),
+            meanAnomalyDeg: normalizeAngleDeg(radiansToDegrees(satrec.mo)),
+            trueAnomalyDeg: computeTrueAnomalyDeg(pv.position, pv.velocity),
+            eccentricity,
+            bstar: Number(satrec.bstar),
+            perigeeKm,
+            apogeeKm,
+          })
+        }
+      } catch {
+        // Keep previous snapshot if a single propagation step fails.
+      }
+    }
+
+    updateSnapshot()
+    const id = window.setInterval(updateSnapshot, ORBITAL_SNAPSHOT_REFRESH_MS)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(id)
+    }
+  }, [selected?.id, selected?.tle1, selected?.tle2, isReentered])
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-black/25 p-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-white/75 text-[11px] mb-2">
+        <div className="flex items-center gap-2">
+          <Orbit className="h-3.5 w-3.5" />
+          {tr('Parámetros orbitales (simulación)', 'Orbital parameters (simulation)')}
+        </div>
+        <MethodologyNotice tr={tr} />
+      </div>
+
+      {isReentered ? (
+        <div className="text-xs text-white/55 rounded-md border border-white/10 bg-black/20 px-2 py-2">
+          {tr('No hay simulación en tiempo real para objetos reingresados.', 'Live simulation is not available for reentered objects.')}
+        </div>
+      ) : !hasTle ? (
+        <div className="text-xs text-white/55 rounded-md border border-white/10 bg-black/20 px-2 py-2">
+          {tr('No hay TLE suficiente para calcular parámetros en vivo.', 'No valid TLE available for live orbital parameters.')}
+        </div>
+      ) : !snapshot ? (
+        <div className="text-xs text-white/55 rounded-md border border-white/10 bg-black/20 px-2 py-2">
+          {tr('No hay TLE suficiente para calcular parámetros en vivo.', 'No valid TLE available for live orbital parameters.')}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <div className="text-[10px] text-white/55 mono">
+            {tr('Última actualización', 'Last update')}: {fmtUtcIso(snapshot.timestamp)}
+          </div>
+
+          <div className="overflow-x-auto rounded-lg border border-white/10">
+            <table className="min-w-full text-[11px]">
+              <tbody>
+                <tr className="border-b border-white/10">
+                  <td className="px-2 py-1 text-white/60">{tr('Latitud', 'Latitude')}</td>
+                  <td className="px-2 py-1 mono text-white/90">{fmtSigned(snapshot.latDeg, 3)}°</td>
+                  <td className="px-2 py-1 text-white/60">{tr('Longitud', 'Longitude')}</td>
+                  <td className="px-2 py-1 mono text-white/90">{fmtSigned(snapshot.lonDeg, 3)}°</td>
+                </tr>
+                <tr className="border-b border-white/10">
+                  <td className="px-2 py-1 text-white/60">{tr('Altitud', 'Altitude')}</td>
+                  <td className="px-2 py-1 mono text-white/90">{fmtNum(snapshot.altitudeKm, 2)} km</td>
+                  <td className="px-2 py-1 text-white/60">{tr('Velocidad', 'Speed')}</td>
+                  <td className="px-2 py-1 mono text-white/90">{fmtNum(snapshot.speedKmS, 4)} km/s</td>
+                </tr>
+                <tr>
+                  <td className="px-2 py-1 text-white/60">ECI X</td>
+                  <td className="px-2 py-1 mono text-white/90">{fmtNum(snapshot.eciXKm, 1)} km</td>
+                  <td className="px-2 py-1 text-white/60">ECI Y / Z</td>
+                  <td className="px-2 py-1 mono text-white/90">{fmtNum(snapshot.eciYKm, 1)} / {fmtNum(snapshot.eciZKm, 1)} km</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="overflow-x-auto rounded-lg border border-white/10">
+            <table className="min-w-full text-[11px]">
+              <tbody>
+                <tr className="border-b border-white/10">
+                  <td className="px-2 py-1 text-white/60">{tr('Movimiento medio', 'Mean motion')}</td>
+                  <td className="px-2 py-1 mono text-white/90">{fmtNum(snapshot.meanMotionRevPerDay, 6)} rev/day</td>
+                  <td className="px-2 py-1 text-white/60">{tr('Periodo', 'Period')}</td>
+                  <td className="px-2 py-1 mono text-white/90">{fmtNum(snapshot.periodMin, 3)} min</td>
+                </tr>
+                <tr className="border-b border-white/10">
+                  <td className="px-2 py-1 text-white/60">{tr('Inclinación', 'Inclination')}</td>
+                  <td className="px-2 py-1 mono text-white/90">{fmtNum(snapshot.inclinationDeg, 4)}°</td>
+                  <td className="px-2 py-1 text-white/60">{tr('Excentricidad', 'Eccentricity')}</td>
+                  <td className="px-2 py-1 mono text-white/90">{fmtNum(snapshot.eccentricity, 7)}</td>
+                </tr>
+                <tr className="border-b border-white/10">
+                  <td className="px-2 py-1 text-white/60">RAAN</td>
+                  <td className="px-2 py-1 mono text-white/90">{fmtNum(snapshot.raanDeg, 4)}°</td>
+                  <td className="px-2 py-1 text-white/60">{tr('Arg. perigeo', 'Arg. perigee')}</td>
+                  <td className="px-2 py-1 mono text-white/90">{fmtNum(snapshot.argPerigeeDeg, 4)}°</td>
+                </tr>
+                <tr className="border-b border-white/10">
+                  <td className="px-2 py-1 text-white/60">{tr('Anomalía media', 'Mean anomaly')}</td>
+                  <td className="px-2 py-1 mono text-white/90">{fmtNum(snapshot.meanAnomalyDeg, 4)}°</td>
+                  <td className="px-2 py-1 text-white/60">{tr('Anomalía verdadera', 'True anomaly')}</td>
+                  <td className="px-2 py-1 mono text-white/90">{fmtNum(snapshot.trueAnomalyDeg, 4)}°</td>
+                </tr>
+                <tr>
+                  <td className="px-2 py-1 text-white/60">{tr('Perigeo/Apogeo', 'Perigee/Apogee')}</td>
+                  <td className="px-2 py-1 mono text-white/90">{fmtNum(snapshot.perigeeKm, 2)} / {fmtNum(snapshot.apogeeKm, 2)} km</td>
+                  <td className="px-2 py-1 text-white/60">B*</td>
+                  <td className="px-2 py-1 mono text-white/90">{fmtNum(snapshot.bstar, 8)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -1163,6 +1771,10 @@ export default function ObjectSearchModule() {
                   </div>
                 </div>
               </div>
+
+              <OrbitalParamsTables selected={selected} tr={tr} />
+
+              <OrbitalHistoryCharts selected={selected} tr={tr} />
             </div>
           ) : (
             <div className="text-sm text-white/65">{tr('Selecciona un resultado para ver su ficha unificada.', 'Select a result to view its unified profile.')}</div>

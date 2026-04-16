@@ -18,6 +18,33 @@ npm run dev
 ```
 Luego abrir `http://localhost:5173`.
 
+## Voz IA Open Source (facil)
+
+La guia orbital soporta voz realista mediante un endpoint local de TTS open source y tiene fallback automatico a la voz del navegador.
+
+### Opcion recomendada: Piper (open source) con servidor HTTP
+
+1) Levantar un servidor Piper HTTP local (ejemplo en puerto 5002).
+2) Configurar la variable en tu entorno:
+
+```powershell
+$env:VITE_AI_TTS_ENDPOINT = "http://127.0.0.1:5002/api/tts"
+```
+
+3) Ejecutar la app:
+
+```bash
+npm run dev
+```
+
+### Contrato esperado del endpoint
+
+- Metodo: `POST`
+- JSON de entrada: `{ "text": "...", "language": "es-ES|en-US", "voice": "espeak" }`
+- Respuesta: audio (`audio/mpeg`, `audio/wav`, etc.)
+
+Si no hay endpoint o falla, la app usa automaticamente `speechSynthesis` del navegador.
+
 ## Build
 ```bash
 npm run build
