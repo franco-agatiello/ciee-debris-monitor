@@ -86,7 +86,8 @@ async function fetchCsvText(url, timeoutMs = 60000) {
     const response = await fetch(url, {
       method: 'GET',
       signal: controller.signal,
-      cache: 'force-cache',
+      // Prevent stale CSV responses when datasets are updated during development.
+      cache: 'no-store',
     })
 
     if (!response.ok) {
@@ -104,9 +105,13 @@ async function fetchCsvText(url, timeoutMs = 60000) {
   }
 }
 
-export async function loadCsv(url, { cacheKey = url, requiredColumns = null } = {}) {
+export async function loadCsv(url, { cacheKey = url, requiredColumns = null, forceReload = false } = {}) {
   const resolvedUrl = publicUrl(url)
   const resolvedCacheKey = cacheKey === url ? resolvedUrl : cacheKey
+
+  if (forceReload) {
+    cache.delete(resolvedCacheKey)
+  }
 
   if (cache.has(resolvedCacheKey)) return cache.get(resolvedCacheKey)
 

@@ -921,7 +921,7 @@ const CesiumGlobe = ({ debrisList, onDebrisSelect }) => {
           </div>
 
           <div className="flex-1 min-h-0 overflow-auto">
-            <FilterAccordion id="search" title={tr('Buscar NORAD', 'NORAD Search')} openId={openFilterId} setOpenId={setOpenFilterId}>
+            <FilterAccordion id="search" title={tr('Buscar', 'Search')} openId={openFilterId} setOpenId={setOpenFilterId}>
               <div className="relative">
                 <svg className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" />

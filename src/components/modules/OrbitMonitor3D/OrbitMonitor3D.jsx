@@ -7,7 +7,10 @@ export default function OrbitMonitor3D() {
 
   useEffect(() => {
     let mounted = true;
-    loadCsv('/data/debris_orbita.csv', { requiredColumns: ['TLE_LINE1', 'TLE_LINE2'] })
+    loadCsv('/data/debris_orbita.csv', {
+      requiredColumns: ['TLE_LINE1', 'TLE_LINE2'],
+      forceReload: true
+    })
       .then((rows) => {
         if (!mounted) return;
         const tleArray = rows
