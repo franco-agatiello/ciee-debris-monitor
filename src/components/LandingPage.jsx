@@ -15,7 +15,7 @@ export default function LandingPage() {
         key: 'orbit',
         Icon: Globe,
         title: tr('Monitor orbital', 'Orbit Monitor'),
-        subtitle: tr('Vigilancia 3D del catálogo activo', '3D active catalog surveillance'),
+        subtitle: tr('Monitoreo 3D del catálogo activo', '3D active catalog surveillance'),
         to: '/dashboard/orbit',
         accent: 'from-emerald-400/25 to-emerald-300/5',
         iconTone: 'text-emerald-100',

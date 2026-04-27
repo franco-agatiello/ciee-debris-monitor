@@ -5,7 +5,7 @@ const CIEE_URL = 'https://www.ciee.unlp.edu.ar/'
 
 export default function LoadingScreen({ title }) {
   const { tr } = useI18n()
-  const safeTitle = title || tr('Suite CIEE de Vigilancia Espacial', 'CIEE Space Watch Suite')
+  const safeTitle = title || tr('Suite CIEE de Monitoreo Espacial', 'CIEE Space Watch Suite')
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[#02040a]" role="status" aria-live="polite">
