@@ -101,6 +101,14 @@ export default function LandingPage() {
           <div className="mt-6 text-center text-xs text-gray-200/55">
             <span className="mono">CIEE</span> · {tr('Interfaz operativa', 'Operational interface')}
           </div>
+
+          {/* Aviso legal sutil */}
+          <div className="mt-3 text-[11px] text-gray-400/80 w-full leading-relaxed text-center px-2">
+            {tr(
+              'La información provista por MIRA se basa en modelos de predicción, análisis orbital y procesamiento de datos abiertos como ESA, Space-Track, NASA y CelesTrak. Puede contener márgenes de error, incertidumbre o variaciones propias de la dinámica del entorno espacial. No constituye un sistema oficial de alerta ni reemplaza comunicaciones de autoridades competentes. No debe interpretarse como asesoramiento técnico, legal u operativo.',
+              'The information provided by MIRA is based on prediction models, orbital analysis, and processing of open data such as ESA, Space-Track, NASA, and CelesTrak. It may contain margins of error, uncertainty, or variations inherent to the dynamics of the space environment. It does not constitute an official alert system nor does it replace communications from competent authorities. It should not be interpreted as technical, legal, or operational advice.'
+            )}
+          </div>
         </div>
       </div>
     </motion.div>

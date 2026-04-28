@@ -10,6 +10,7 @@ import { useDeferredRender } from '../../../hooks/useDeferredRender.js'
 import HeatLayer from '../ReentryMap2D/HeatLayer.jsx'
 import { useI18n } from '../../../i18n/I18nProvider.jsx'
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { AlertTriangle } from 'lucide-react'
 
 const RECENCY_BUCKETS = [
   { key: 'lt1', color: '#22c55e' },
@@ -1565,21 +1566,25 @@ function ReentryMapModule() {
               </div>
             </GlassModal>
 
-            <GlassModal open={!ack} title={tr('Aviso de alta fidelidad', 'High Fidelity Notice')} blockClose onClose={() => {}}>
-              <div className="text-lg font-extrabold text-white/90">{tr('ADVERTENCIA', 'WARNING')}</div>
-              <div className="mt-3 text-sm text-white/80 leading-relaxed">
-                {tr('Esta visualización solo representa eventos de reingreso con datos de ubicación de alta fidelidad. NO representa toda la población reingresada.', 'This visualization only represents reentry events with high-fidelity location data. It does NOT represent the entire decayed population.')}
-              </div>
-              <div className="mt-5 flex items-center justify-end">
-                <button
-                  type="button"
-                  onClick={() => setAck(true)}
-                  className="px-4 py-2 rounded-xl border text-sm font-extrabold transition bg-white/10 border-white/20 hover:bg-white/15"
+            {/* Botón de advertencia de alta fidelidad pequeño sobre la leyenda */}
+            <div className="absolute right-4 bottom-28 z-50 flex flex-col items-end pointer-events-auto select-none">
+              <div className="relative group">
+                <div
+                  className="w-6 h-6 flex items-center justify-center rounded-lg border border-yellow-300/40 bg-black/70 text-yellow-200 cursor-help shadow-lg hover:bg-black/80 transition-colors"
+                  aria-label={tr('Alta fidelidad', 'High fidelity')}
+                  tabIndex={0}
                 >
-                  {tr('Entendido', 'Acknowledge')}
-                </button>
+                  <AlertTriangle className="h-3 w-3" />
+                </div>
+                <div className="pointer-events-none absolute right-0 bottom-full mb-1 hidden group-hover:block z-[90] w-[220px] max-w-[60vw] rounded-md border border-yellow-300/25 bg-[#0a0f1dcc] px-2 py-1.5 text-[10px] leading-relaxed text-amber-50 shadow-xl backdrop-blur-md text-justify">
+                  <span className="font-bold block mb-1">{tr('Alta fidelidad', 'High fidelity')}</span>
+                  {tr(
+                    'Esta visualización solo representa eventos de reingreso con datos de ubicación de alta fidelidad. NO representa toda la población reingresada.',
+                    'This visualization only represents reentry events with high-fidelity location data. It does NOT represent the entire decayed population.'
+                  )}
+                </div>
               </div>
-            </GlassModal>
+            </div>
           </>
         )}
       </div>
