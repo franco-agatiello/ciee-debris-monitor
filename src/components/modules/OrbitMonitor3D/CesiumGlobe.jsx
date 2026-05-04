@@ -273,6 +273,8 @@ const CesiumGlobe = ({ debrisList, onDebrisSelect }) => {
   useEffect(() => {
     if (!containerRef.current) return undefined;
 
+
+
     const viewer = new Cesium.Viewer(containerRef.current, {
       animation: false,
       timeline: false,
@@ -290,9 +292,23 @@ const CesiumGlobe = ({ debrisList, onDebrisSelect }) => {
       creditContainer: document.createElement('div')
     });
 
+    // Quitar todas las capas base
+    viewer.imageryLayers.removeAll();
+    // Agregar la textura local como capa base
+    viewer.imageryLayers.addImageryProvider(
+      new Cesium.SingleTileImageryProvider({
+        url: '/img/earthmap1k.jpg',
+        rectangle: Cesium.Rectangle.fromDegrees(-180, -90, 180, 90),
+        tileWidth: 5400,
+        tileHeight: 2700
+      })
+    );
+
     viewerRef.current = viewer;
     viewer.scene.globe.depthTestAgainstTerrain = true;
     viewer.scene.globe.depthTestAgainstGlobe = false;
+    // Activar sombra día/noche en tiempo real
+    viewer.scene.globe.enableLighting = true;
 
     const pointCollection = viewer.scene.primitives.add(new Cesium.PointPrimitiveCollection());
     pointCollectionRef.current = pointCollection;
