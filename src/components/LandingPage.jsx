@@ -57,8 +57,10 @@ export default function LandingPage() {
             <img
               src={publicUrl('/img/logo-ciee.png')}
               alt="CIEE"
-              className="h-14 md:h-16 w-auto cursor-pointer"
+              className="h-14 md:h-16 w-auto select-none"
               title="CIEE"
+              draggable="false"
+              style={{ pointerEvents: 'none' }}
             />
 
             <h1 className="mt-5 text-3xl md:text-4xl font-extrabold tracking-tight text-white">
