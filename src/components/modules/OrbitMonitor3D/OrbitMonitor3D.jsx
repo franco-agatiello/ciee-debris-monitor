@@ -74,7 +74,7 @@ export default function OrbitMonitor3D() {
               exit={{ opacity: 0 }}
             />
             <motion.div
-              className="relative w-full max-w-2xl bg-black/50 backdrop-blur-xl border border-white/10 rounded-2xl p-5 shadow-2xl"
+              className="relative w-full max-w-2xl bg-neutral-800/80 backdrop-blur-xl border border-white/10 rounded-2xl p-5 shadow-2xl"
               initial={{ opacity: 0, y: 18, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 18, scale: 0.98 }}
