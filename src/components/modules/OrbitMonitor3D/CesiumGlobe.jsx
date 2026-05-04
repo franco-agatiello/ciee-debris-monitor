@@ -297,7 +297,7 @@ const CesiumGlobe = ({ debrisList, onDebrisSelect }) => {
     // Agregar la textura local como capa base
     viewer.imageryLayers.addImageryProvider(
       new Cesium.SingleTileImageryProvider({
-        url: '/img/earthmap1k.jpg',
+        url: `${import.meta.env.BASE_URL}img/earthmap1k.jpg`,
         rectangle: Cesium.Rectangle.fromDegrees(-180, -90, 180, 90),
         tileWidth: 5400,
         tileHeight: 2700
