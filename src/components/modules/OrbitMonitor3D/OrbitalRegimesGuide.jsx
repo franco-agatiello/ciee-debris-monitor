@@ -84,7 +84,7 @@ function getNarration(stageId) {
       };
     case 'INC':
       return {
-        teachEs: 'Ahora hablamos de inclinación: es el “ángulo de ataque” del plano orbital.',
+        teachEs: 'Ahora hablamos de inclinación: es el “ángulo respecto al ecuador” del plano orbital.',
         teachEn: 'Now let’s talk inclination: it is the orbital plane “attack angle.”',
         askEs: 'Compara una órbita casi ecuatorial con una casi polar y verás rutas totalmente distintas.',
         askEn: 'Compare a nearly equatorial orbit with a nearly polar one and you will see very different ground tracks.',
@@ -296,7 +296,7 @@ export default function OrbitalRegimesGuide() {
   const lastTickSecondsRef = useRef(null);
   const autoRotateSpeedRef = useRef(AUTO_ROTATE_RAD_PER_SEC);
   const [stageIndex, setStageIndex] = useState(0);
-  const [isAutoPlay, setIsAutoPlay] = useState(true);
+  const [isAutoPlay, setIsAutoPlay] = useState(false);
   const [isVoiceOn, setIsVoiceOn] = useState(true);
   const [typedNarration, setTypedNarration] = useState('');
   const [availableVoices, setAvailableVoices] = useState([]);
@@ -347,6 +347,7 @@ export default function OrbitalRegimesGuide() {
   useEffect(() => {
     if (!containerRef.current) return undefined;
 
+
     const viewer = new Cesium.Viewer(containerRef.current, {
       animation: false,
       timeline: false,
@@ -361,6 +362,17 @@ export default function OrbitalRegimesGuide() {
       shouldAnimate: true,
       creditContainer: document.createElement('div')
     });
+
+    // Quitar todas las capas base y agregar textura local igual que en OrbitMonitor3D
+    viewer.imageryLayers.removeAll();
+    viewer.imageryLayers.addImageryProvider(
+      new Cesium.SingleTileImageryProvider({
+        url: `${import.meta.env.BASE_URL}img/earthmap1k.jpg`,
+        rectangle: Cesium.Rectangle.fromDegrees(-180, -90, 180, 90),
+        tileWidth: 5400,
+        tileHeight: 2700
+      })
+    );
 
     viewerRef.current = viewer;
     viewer.scene.globe.enableLighting = false;
@@ -421,11 +433,6 @@ export default function OrbitalRegimesGuide() {
     }
 
     if (typeof window === 'undefined' || !window.speechSynthesis) {
-      if (isAutoPlay) {
-        fallbackAdvanceTimerRef.current = window.setTimeout(() => {
-          setStageIndex((prev) => (prev + 1) % stages.length);
-        }, STAGE_DURATION_MS);
-      }
       return undefined;
     }
 
@@ -433,11 +440,6 @@ export default function OrbitalRegimesGuide() {
 
     if (!isVoiceOn) {
       synth.cancel();
-      if (isAutoPlay) {
-        fallbackAdvanceTimerRef.current = window.setTimeout(() => {
-          setStageIndex((prev) => (prev + 1) % stages.length);
-        }, STAGE_DURATION_MS);
-      }
       return undefined;
     }
 
@@ -454,29 +456,13 @@ export default function OrbitalRegimesGuide() {
     utterance.rate = 1.02;
     utterance.pitch = 1.02;
     utterance.volume = 1;
-    utterance.onend = () => {
-      if (isAutoPlay) {
-        setStageIndex((prev) => (prev + 1) % stages.length);
-      }
-    };
-    utterance.onerror = () => {
-      if (isAutoPlay) {
-        fallbackAdvanceTimerRef.current = window.setTimeout(() => {
-          setStageIndex((prev) => (prev + 1) % stages.length);
-        }, STAGE_DURATION_MS);
-      }
-    };
-
+    // No avanzar automáticamente la diapositiva
     synth.speak(utterance);
 
     return () => {
       synth.cancel();
-      if (fallbackAdvanceTimerRef.current) {
-        window.clearTimeout(fallbackAdvanceTimerRef.current);
-        fallbackAdvanceTimerRef.current = null;
-      }
     };
-  }, [announcerText, availableVoices, hasAudioUnlock, isAutoPlay, isSpanish, isVoiceOn, stageIndex, stages.length]);
+  }, [announcerText, availableVoices, hasAudioUnlock, isVoiceOn, isSpanish, stageIndex, stages.length]);
 
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -539,13 +525,7 @@ export default function OrbitalRegimesGuide() {
                 <div className="text-[11px] text-gray-200">
                   {stageIndex + 1}/{stages.length}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsAutoPlay((prev) => !prev)}
-                  className="px-2 py-1 text-xs font-bold rounded bg-cyan-500/20 hover:bg-cyan-500/35 text-cyan-100"
-                >
-                  {isAutoPlay ? tr('Pausar', 'Pause') : tr('Reanudar', 'Resume')}
-                </button>
+                {/* Botón de autoplay eliminado, solo avance manual */}
                 <button
                   type="button"
                   onClick={() => setStageIndex((prev) => (prev + 1) % stages.length)}
