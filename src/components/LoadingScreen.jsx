@@ -13,10 +13,7 @@ export default function LoadingScreen({ title }) {
         <img
           src={publicUrl('/img/logo-ciee.png')}
           alt="CIEE"
-          className="h-14 w-auto mx-auto opacity-90 cursor-pointer"
-          onMouseEnter={() => {
-            window.location.href = CIEE_URL
-          }}
+          className="h-14 w-auto mx-auto opacity-90"
           title={tr('Ir a CIEE', 'Go to CIEE')}
         />
         <div className="mt-4 text-lg font-extrabold tracking-tight text-white">{safeTitle}</div>
