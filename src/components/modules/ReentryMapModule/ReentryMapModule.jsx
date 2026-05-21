@@ -478,7 +478,7 @@ function ReentryMapModule() {
   const [orbitOpen, setOrbitOpen] = useState(false)
   const [orbitPoint, setOrbitPoint] = useState(null)
   const [reportOpen, setReportOpen] = useState(false)
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 768)
 
   const mapHostRef = useRef(null)
   const mapRef = useRef(null)

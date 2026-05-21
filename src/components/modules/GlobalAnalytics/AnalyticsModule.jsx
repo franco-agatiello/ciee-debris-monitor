@@ -354,6 +354,8 @@ function TableWrap({ children }) {
 }
 
 function DataTable({ columns, rows, searchPlaceholder, initialSort }) {
+  // Sidebar de filtros/analytics: cerrada en mobile, abierta en desktop
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768)
   const [query, setQuery] = useState('')
   const [sortState, setSortState] = useState(
     initialSort && initialSort.key

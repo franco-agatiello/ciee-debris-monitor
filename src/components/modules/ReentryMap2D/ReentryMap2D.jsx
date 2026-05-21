@@ -255,6 +255,8 @@ function Orbit3DModal({ open, point, onClose }) {
 
 export default function ReentryMap2D() {
   const [rows, setRows] = useState([])
+  // Sidebar de filtros: cerrada en mobile, abierta en desktop
+  const [filtersOpen, setFiltersOpen] = useState(() => window.innerWidth >= 768)
   const [mode, setMode] = useState('points') // points | heat
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')

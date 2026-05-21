@@ -1412,6 +1412,7 @@ function OrbitalParamsTables({ selected, tr }) {
 }
 
 
+
 export default function ObjectSearchModule() {
   const { tr } = useI18n()
   const heavyReady = useDeferredRender({ delayMs: 500 })
@@ -1424,6 +1425,8 @@ export default function ObjectSearchModule() {
   const [visibleCount, setVisibleCount] = useState(RESULTS_STEP)
   const [selectedId, setSelectedId] = useState('')
   const [sortMode, setSortMode] = useState(SORT_MODE_RECENT)
+  // Sidebar de filtros: cerrada en mobile, abierta en desktop
+  const [filtersOpen, setFiltersOpen] = useState(() => window.innerWidth >= 768)
   const [typeFilter, setTypeFilter] = useState('all')
   const [countryFilter, setCountryFilter] = useState('all')
   const [orbitStatusFilter, setOrbitStatusFilter] = useState('all') // Nuevo filtro

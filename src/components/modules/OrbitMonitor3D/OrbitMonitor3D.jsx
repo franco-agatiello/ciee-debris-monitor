@@ -7,6 +7,8 @@ import { useI18n } from '../../../i18n/I18nProvider.jsx';
 
 
 export default function OrbitMonitor3D() {
+  // Sidebar de módulos: cerrada en mobile, abierta en desktop
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768);
   const [debrisList, setDebrisList] = useState([]);
   const [legalAck, setLegalAck] = useState(false);
   const { tr } = useI18n();

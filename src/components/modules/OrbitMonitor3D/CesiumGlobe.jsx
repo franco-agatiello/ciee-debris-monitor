@@ -209,8 +209,8 @@ const CesiumGlobe = ({ debrisList, onDebrisSelect }) => {
   });
   const [inclinationRange, setInclinationRange] = useState([0, 180]);
   const [eccentricityRange, setEccentricityRange] = useState([0, 1]);
-  const [openFilterId, setOpenFilterId] = useState('search');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [openFilterId, setOpenFilterId] = useState(() => (window.innerWidth >= 768 ? 'search' : ''));
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 768);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
 
